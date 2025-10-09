@@ -1,14 +1,14 @@
 "use client"
 
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useId, useState, useTransition } from "react"
+import { signIn } from "@/app/auth/actions"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { signIn } from "@/app/auth/actions"
-import { useRouter } from "next/navigation"
 
 export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRef<"div">) {
   const emailId = useId()
@@ -21,7 +21,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     e.preventDefault()
     setError(null)
     const formData = new FormData(e.currentTarget)
-    
+
     startTransition(async () => {
       const result = await signIn(formData)
       if (result?.error) {
@@ -44,7 +44,13 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor={emailId}>Email</Label>
-                <Input id={emailId} name="email" type="email" placeholder="m@example.com" required />
+                <Input
+                  id={emailId}
+                  name="email"
+                  type="email"
+                  placeholder="m@example.com"
+                  required
+                />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -52,11 +58,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
                 </div>
                 <Input id={passwordId} name="password" type="password" required />
               </div>
-              {error && (
-                <div className="text-sm text-red-500">
-                  {error}
-                </div>
-              )}
+              {error && <div className="text-red-500 text-sm">{error}</div>}
               <Button type="submit" className="w-full" disabled={isPending}>
                 {isPending ? "Logging in..." : "Login"}
               </Button>
