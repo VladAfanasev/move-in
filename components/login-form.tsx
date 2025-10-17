@@ -26,7 +26,7 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
       const result = await signIn(formData)
       if (result?.error) {
         setError(result.error)
-      } else {
+      } else if (result?.success) {
         router.push("/dashboard")
       }
     })

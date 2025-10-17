@@ -25,13 +25,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initAuth = async () => {
       try {
+        // Debug: Check if Supabase client is properly initialized
+        if (!supabase) {
+          console.error("Supabase client not initialized")
+          return
+        }
+
         const {
           data: { session },
         } = await supabase.auth.getSession()
         setSession(session)
         setUser(session?.user ?? null)
+
+        // Debug: Log session status
+        console.log("Auth session loaded:", session ? "Authenticated" : "No session")
       } catch (error) {
         console.error("Error loading session:", error)
+        // Check if it's a connection error
+        if (error instanceof Error && error.message.includes("fetch")) {
+          console.error(
+            "Possible network/connection issue. Check your Supabase URL and internet connection.",
+          )
+        }
       } finally {
         setLoading(false)
       }

@@ -27,7 +27,7 @@ export function RegisterForm({ className, ...props }: React.ComponentPropsWithou
       const result = await signUp(formData)
       if (result?.error) {
         setError(result.error)
-      } else {
+      } else if (result?.success) {
         router.push("/dashboard")
       }
     })
