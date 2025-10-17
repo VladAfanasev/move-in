@@ -335,6 +335,8 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
     pageSize: 10,
   })
   const sortableId = React.useId()
+  const viewSelectorId = React.useId()
+  const rowsPerPageId = React.useId()
   const sensors = useSensors(
     useSensor(MouseSensor, {}),
     useSensor(TouchSensor, {}),
@@ -382,11 +384,11 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
   return (
     <Tabs defaultValue="outline" className="flex w-full flex-col justify-start gap-6">
       <div className="flex items-center justify-between px-4 lg:px-6">
-        <Label htmlFor="view-selector" className="sr-only">
+        <Label htmlFor={viewSelectorId} className="sr-only">
           View
         </Label>
         <Select defaultValue="outline">
-          <SelectTrigger className="flex @4xl/main:hidden w-fit" id="view-selector">
+          <SelectTrigger className="flex @4xl/main:hidden w-fit" id={viewSelectorId}>
             <SelectValue placeholder="Select a view" />
           </SelectTrigger>
           <SelectContent>
@@ -505,7 +507,7 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
           </div>
           <div className="flex w-full items-center gap-8 lg:w-fit">
             <div className="hidden items-center gap-2 lg:flex">
-              <Label htmlFor="rows-per-page" className="font-medium text-sm">
+              <Label htmlFor={rowsPerPageId} className="font-medium text-sm">
                 Rows per page
               </Label>
               <Select
@@ -514,7 +516,7 @@ export function DataTable({ data: initialData }: { data: z.infer<typeof schema>[
                   table.setPageSize(Number(value))
                 }}
               >
-                <SelectTrigger className="w-20" id="rows-per-page">
+                <SelectTrigger className="w-20" id={rowsPerPageId}>
                   <SelectValue placeholder={table.getState().pagination.pageSize} />
                 </SelectTrigger>
                 <SelectContent side="top">
@@ -608,6 +610,12 @@ const chartConfig = {
 
 function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
   const isMobile = useIsMobile()
+  const headerInputId = React.useId()
+  const typeSelectId = React.useId()
+  const statusSelectId = React.useId()
+  const targetInputId = React.useId()
+  const limitInputId = React.useId()
+  const reviewerSelectId = React.useId()
 
   return (
     <Sheet>
@@ -676,14 +684,14 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
           )}
           <form className="flex flex-col gap-4">
             <div className="flex flex-col gap-3">
-              <Label htmlFor="header">Header</Label>
-              <Input id="header" defaultValue={item.header} />
+              <Label htmlFor={headerInputId}>Header</Label>
+              <Input id={headerInputId} defaultValue={item.header} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-3">
-                <Label htmlFor="type">Type</Label>
+                <Label htmlFor={typeSelectId}>Type</Label>
                 <Select defaultValue={item.type}>
-                  <SelectTrigger id="type" className="w-full">
+                  <SelectTrigger id={typeSelectId} className="w-full">
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -699,9 +707,9 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
                 </Select>
               </div>
               <div className="flex flex-col gap-3">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor={statusSelectId}>Status</Label>
                 <Select defaultValue={item.status}>
-                  <SelectTrigger id="status" className="w-full">
+                  <SelectTrigger id={statusSelectId} className="w-full">
                     <SelectValue placeholder="Select a status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -714,18 +722,18 @@ function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col gap-3">
-                <Label htmlFor="target">Target</Label>
-                <Input id="target" defaultValue={item.target} />
+                <Label htmlFor={targetInputId}>Target</Label>
+                <Input id={targetInputId} defaultValue={item.target} />
               </div>
               <div className="flex flex-col gap-3">
-                <Label htmlFor="limit">Limit</Label>
-                <Input id="limit" defaultValue={item.limit} />
+                <Label htmlFor={limitInputId}>Limit</Label>
+                <Input id={limitInputId} defaultValue={item.limit} />
               </div>
             </div>
             <div className="flex flex-col gap-3">
-              <Label htmlFor="reviewer">Reviewer</Label>
+              <Label htmlFor={reviewerSelectId}>Reviewer</Label>
               <Select defaultValue={item.reviewer}>
-                <SelectTrigger id="reviewer" className="w-full">
+                <SelectTrigger id={reviewerSelectId} className="w-full">
                   <SelectValue placeholder="Select a reviewer" />
                 </SelectTrigger>
                 <SelectContent>

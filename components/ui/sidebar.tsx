@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useCookie } from "@/hooks/use-cookie"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
 
@@ -58,6 +59,7 @@ const SidebarProvider = React.forwardRef<
     ref,
   ) => {
     const isMobile = useIsMobile()
+    const { setCookie } = useCookie()
     const [openMobile, setOpenMobile] = React.useState(false)
 
     const [_open, _setOpen] = React.useState(defaultOpen)
@@ -71,14 +73,18 @@ const SidebarProvider = React.forwardRef<
           _setOpen(openState)
         }
 
-        document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
+        // Save sidebar state to cookie
+        setCookie(SIDEBAR_COOKIE_NAME, String(openState), {
+          path: "/",
+          maxAge: SIDEBAR_COOKIE_MAX_AGE,
+        })
       },
-      [setOpenProp, open],
+      [setOpenProp, open, setCookie],
     )
 
     const toggleSidebar = React.useCallback(() => {
       return isMobile ? setOpenMobile(open => !open) : setOpen(open => !open)
-    }, [isMobile, setOpen, setOpenMobile])
+    }, [isMobile, setOpen])
 
     React.useEffect(() => {
       const handleKeyDown = (event: KeyboardEvent) => {
@@ -104,7 +110,7 @@ const SidebarProvider = React.forwardRef<
         setOpenMobile,
         toggleSidebar,
       }),
-      [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
+      [state, open, setOpen, isMobile, openMobile, toggleSidebar],
     )
 
     return (
