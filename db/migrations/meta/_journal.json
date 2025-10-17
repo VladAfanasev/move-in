@@ -8,6 +8,13 @@
       "when": 1759672331832,
       "tag": "0000_wet_leopardon",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1760706863566,
+      "tag": "0001_large_karnak",
+      "breakpoints": true
     }
   ]
 }
