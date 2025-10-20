@@ -1,5 +1,4 @@
 import "dotenv/config"
-import { drizzle } from "drizzle-orm/postgres-js"
 import postgres from "postgres"
 
 const connectionString = process.env.DATABASE_URL
@@ -11,7 +10,7 @@ const client = postgres(connectionString)
 
 async function setupFresh() {
   console.log("🔄 Setting up fresh database with correct enums...")
-  
+
   try {
     // Drop everything first
     await client.unsafe(`
@@ -20,7 +19,7 @@ async function setupFresh() {
       GRANT ALL ON SCHEMA public TO postgres;
       GRANT ALL ON SCHEMA public TO public;
     `)
-    
+
     // Create the enums with correct values
     await client.unsafe(`
       CREATE TYPE "public"."group_status" AS ENUM('forming', 'active', 'viewing', 'offer_made', 'closed', 'disbanded');
@@ -29,7 +28,7 @@ async function setupFresh() {
       CREATE TYPE "public"."property_status" AS ENUM('available', 'in_option', 'sold', 'archived');
       CREATE TYPE "public"."property_type" AS ENUM('house', 'apartment');
     `)
-    
+
     // Create tables with updated schema
     await client.unsafe(`
       CREATE TABLE "profiles" (
@@ -42,7 +41,7 @@ async function setupFresh() {
         "updated_at" timestamp DEFAULT now() NOT NULL
       );
     `)
-    
+
     await client.unsafe(`
       CREATE TABLE "properties" (
         "id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
@@ -68,7 +67,7 @@ async function setupFresh() {
         "updated_at" timestamp DEFAULT now() NOT NULL
       );
     `)
-    
+
     // Add other tables
     await client.unsafe(`
       CREATE TABLE "buying_groups" (
@@ -87,7 +86,7 @@ async function setupFresh() {
         "updated_at" timestamp DEFAULT now() NOT NULL
       );
     `)
-    
+
     await client.unsafe(`
       CREATE TABLE "group_members" (
         "group_id" uuid NOT NULL,
@@ -102,7 +101,7 @@ async function setupFresh() {
         CONSTRAINT "group_members_group_id_user_id_pk" PRIMARY KEY("group_id","user_id")
       );
     `)
-    
+
     await client.unsafe(`
       CREATE TABLE "group_properties" (
         "group_id" uuid NOT NULL,
@@ -115,7 +114,7 @@ async function setupFresh() {
         CONSTRAINT "group_properties_group_id_property_id_pk" PRIMARY KEY("group_id","property_id")
       );
     `)
-    
+
     // Add foreign key constraints
     await client.unsafe(`
       ALTER TABLE "buying_groups" ADD CONSTRAINT "buying_groups_created_by_profiles_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."profiles"("id") ON DELETE no action ON UPDATE no action;
@@ -126,9 +125,8 @@ async function setupFresh() {
       ALTER TABLE "group_properties" ADD CONSTRAINT "group_properties_added_by_profiles_id_fk" FOREIGN KEY ("added_by") REFERENCES "public"."profiles"("id") ON DELETE no action ON UPDATE no action;
       ALTER TABLE "properties" ADD CONSTRAINT "properties_listed_by_profiles_id_fk" FOREIGN KEY ("listed_by") REFERENCES "public"."profiles"("id") ON DELETE no action ON UPDATE no action;
     `)
-    
+
     console.log("✅ Fresh database setup completed successfully!")
-    
   } catch (error) {
     console.error("❌ Setup failed:", error)
     throw error
@@ -138,7 +136,7 @@ async function setupFresh() {
 }
 
 if (require.main === module) {
-  setupFresh().catch((error) => {
+  setupFresh().catch(error => {
     console.error(error)
     process.exit(1)
   })

@@ -18,13 +18,13 @@ const sampleProfiles = [
     fullName: "Jan de Vries",
   },
   {
-    id: "550e8400-e29b-41d4-a716-446655440002", 
+    id: "550e8400-e29b-41d4-a716-446655440002",
     email: "emma.jansen@example.nl",
     fullName: "Emma Jansen",
   },
   {
     id: "550e8400-e29b-41d4-a716-446655440003",
-    email: "pieter.van.den.berg@example.nl", 
+    email: "pieter.van.den.berg@example.nl",
     fullName: "Pieter van den Berg",
   },
   {
@@ -40,30 +40,98 @@ const sampleProfiles = [
 ]
 
 const dutchCities = [
-  { city: "Amsterdam", province: "Noord-Holland", postalCodes: ["1011", "1012", "1013", "1015", "1016", "1017"] },
-  { city: "Rotterdam", province: "Zuid-Holland", postalCodes: ["3011", "3012", "3013", "3014", "3015", "3016"] },
-  { city: "Den Haag", province: "Zuid-Holland", postalCodes: ["2511", "2512", "2513", "2514", "2515", "2516"] },
-  { city: "Utrecht", province: "Utrecht", postalCodes: ["3511", "3512", "3513", "3514", "3515", "3516"] },
-  { city: "Eindhoven", province: "Noord-Brabant", postalCodes: ["5611", "5612", "5613", "5614", "5615", "5616"] },
-  { city: "Groningen", province: "Groningen", postalCodes: ["9711", "9712", "9713", "9714", "9715", "9716"] },
-  { city: "Tilburg", province: "Noord-Brabant", postalCodes: ["5011", "5012", "5013", "5014", "5015", "5016"] },
-  { city: "Almere", province: "Flevoland", postalCodes: ["1311", "1312", "1313", "1314", "1315", "1316"] },
-  { city: "Breda", province: "Noord-Brabant", postalCodes: ["4811", "4812", "4813", "4814", "4815", "4816"] },
-  { city: "Nijmegen", province: "Gelderland", postalCodes: ["6511", "6512", "6513", "6514", "6515", "6516"] },
+  {
+    city: "Amsterdam",
+    province: "Noord-Holland",
+    postalCodes: ["1011", "1012", "1013", "1015", "1016", "1017"],
+  },
+  {
+    city: "Rotterdam",
+    province: "Zuid-Holland",
+    postalCodes: ["3011", "3012", "3013", "3014", "3015", "3016"],
+  },
+  {
+    city: "Den Haag",
+    province: "Zuid-Holland",
+    postalCodes: ["2511", "2512", "2513", "2514", "2515", "2516"],
+  },
+  {
+    city: "Utrecht",
+    province: "Utrecht",
+    postalCodes: ["3511", "3512", "3513", "3514", "3515", "3516"],
+  },
+  {
+    city: "Eindhoven",
+    province: "Noord-Brabant",
+    postalCodes: ["5611", "5612", "5613", "5614", "5615", "5616"],
+  },
+  {
+    city: "Groningen",
+    province: "Groningen",
+    postalCodes: ["9711", "9712", "9713", "9714", "9715", "9716"],
+  },
+  {
+    city: "Tilburg",
+    province: "Noord-Brabant",
+    postalCodes: ["5011", "5012", "5013", "5014", "5015", "5016"],
+  },
+  {
+    city: "Almere",
+    province: "Flevoland",
+    postalCodes: ["1311", "1312", "1313", "1314", "1315", "1316"],
+  },
+  {
+    city: "Breda",
+    province: "Noord-Brabant",
+    postalCodes: ["4811", "4812", "4813", "4814", "4815", "4816"],
+  },
+  {
+    city: "Nijmegen",
+    province: "Gelderland",
+    postalCodes: ["6511", "6512", "6513", "6514", "6515", "6516"],
+  },
 ]
 
 const dutchStreetNames = [
-  "Nieuwmarkt", "Prinsengracht", "Herengracht", "Keizersgracht", "Damrak", "Kalverstraat",
-  "Rokin", "Spui", "Leidseplein", "Museumplein", "Vondelpark", "Jordaan", "De Pijp",
-  "Oosterdok", "Westerpark", "Oosterpark", "Sarphatipark", "Beatrixpark", "Zuiderpark",
-  "Boerenwetering", "Singel", "Reguliersgracht", "Lauriergracht", "Egelantiersgracht",
-  "Bloemgracht", "Tuinstraat", "Rozengracht", "Elandsgracht", "Lijnbaansgracht",
-  "Marnixstraat", "Raadhuisstraat", "Hartenstraat", "Gasthuismolensteeg", "Begijnhof"
+  "Nieuwmarkt",
+  "Prinsengracht",
+  "Herengracht",
+  "Keizersgracht",
+  "Damrak",
+  "Kalverstraat",
+  "Rokin",
+  "Spui",
+  "Leidseplein",
+  "Museumplein",
+  "Vondelpark",
+  "Jordaan",
+  "De Pijp",
+  "Oosterdok",
+  "Westerpark",
+  "Oosterpark",
+  "Sarphatipark",
+  "Beatrixpark",
+  "Zuiderpark",
+  "Boerenwetering",
+  "Singel",
+  "Reguliersgracht",
+  "Lauriergracht",
+  "Egelantiersgracht",
+  "Bloemgracht",
+  "Tuinstraat",
+  "Rozengracht",
+  "Elandsgracht",
+  "Lijnbaansgracht",
+  "Marnixstraat",
+  "Raadhuisstraat",
+  "Hartenstraat",
+  "Gasthuismolensteeg",
+  "Begijnhof",
 ]
 
 const features = [
   "Parketvloer",
-  "Moderne keuken", 
+  "Moderne keuken",
   "Inbouwapparatuur",
   "Inloopkast",
   "Tuin",
@@ -111,36 +179,40 @@ function generateRandomProperty(index: number) {
   const postalCode = getRandomElement(cityData.postalCodes)
   const propertyType = getRandomElement(["house", "apartment"] as const)
   const listedBy = getRandomElement(sampleProfiles).id
-  
+
   // Euro pricing: €150K - €1.2M for apartments, €250K - €2M for houses
-  const basePrice = propertyType === "apartment" 
-    ? Math.floor(Math.random() * 1050000) + 150000 // €150K - €1.2M
-    : Math.floor(Math.random() * 1750000) + 250000 // €250K - €2M
-    
+  const basePrice =
+    propertyType === "apartment"
+      ? Math.floor(Math.random() * 1050000) + 150000 // €150K - €1.2M
+      : Math.floor(Math.random() * 1750000) + 250000 // €250K - €2M
+
   const bedrooms = Math.floor(Math.random() * 5) + 1 // 1-5 bedrooms
   const bathrooms = Math.floor(Math.random() * 30) / 10 + 1 // 1.0 - 4.0
-  const squareMeters = propertyType === "apartment" 
-    ? Math.floor(Math.random() * 120) + 40 // 40-160 m²
-    : Math.floor(Math.random() * 200) + 80 // 80-280 m²
-  
+  const squareMeters =
+    propertyType === "apartment"
+      ? Math.floor(Math.random() * 120) + 40 // 40-160 m²
+      : Math.floor(Math.random() * 200) + 80 // 80-280 m²
+
   // Only houses have lot size in Netherlands context
-  const lotSize = propertyType === "house" 
-    ? Math.floor(Math.random() * 800) + 100 // 100-900 m²
-    : null
-    
+  const lotSize =
+    propertyType === "house"
+      ? Math.floor(Math.random() * 800) + 100 // 100-900 m²
+      : null
+
   const yearBuilt = Math.floor(Math.random() * 70) + 1954 // 1954-2024
-  
+
   const selectedFeatures = getRandomElements(features, Math.floor(Math.random() * 6) + 3)
   const imageCount = Math.floor(Math.random() * 8) + 3 // 3-10 images
-  const images = Array.from({ length: imageCount }, (_, i) => 
-    `https://picsum.photos/800/600?random=${index * 10 + i}`
+  const images = Array.from(
+    { length: imageCount },
+    (_, i) => `https://picsum.photos/800/600?random=${index * 10 + i}`,
   )
 
   // Generate realistic Dutch address
   const streetName = getRandomElement(dutchStreetNames)
   const houseNumber = Math.floor(Math.random() * 299) + 1
   const addition = Math.random() > 0.8 ? getRandomElement(["A", "B", "C", "1", "2", "bis"]) : ""
-  
+
   return {
     description: getRandomElement(descriptions),
     address: `${streetName} ${houseNumber}${addition}`,
@@ -180,13 +252,12 @@ async function seed() {
     // Generate and insert 50 properties
     console.log("🏠 Generating 50 mock properties...")
     const mockProperties = Array.from({ length: 50 }, (_, i) => generateRandomProperty(i))
-    
+
     console.log("💾 Inserting properties into database...")
     await db.insert(properties).values(mockProperties)
 
     console.log("✅ Seed completed successfully!")
     console.log(`📊 Inserted ${mockProperties.length} properties`)
-    
   } catch (error) {
     console.error("❌ Seed failed:", error)
     throw error
@@ -196,7 +267,7 @@ async function seed() {
 }
 
 if (require.main === module) {
-  seed().catch((error) => {
+  seed().catch(error => {
     console.error(error)
     process.exit(1)
   })

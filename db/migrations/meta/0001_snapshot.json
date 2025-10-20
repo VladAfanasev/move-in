@@ -157,12 +157,8 @@
           "name": "buying_groups_created_by_profiles_id_fk",
           "tableFrom": "buying_groups",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -243,12 +239,8 @@
           "name": "group_members_group_id_buying_groups_id_fk",
           "tableFrom": "group_members",
           "tableTo": "buying_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -256,12 +248,8 @@
           "name": "group_members_user_id_profiles_id_fk",
           "tableFrom": "group_members",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -269,10 +257,7 @@
       "compositePrimaryKeys": {
         "group_members_group_id_user_id_pk": {
           "name": "group_members_group_id_user_id_pk",
-          "columns": [
-            "group_id",
-            "user_id"
-          ]
+          "columns": ["group_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -335,12 +320,8 @@
           "name": "group_properties_group_id_buying_groups_id_fk",
           "tableFrom": "group_properties",
           "tableTo": "buying_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -348,12 +329,8 @@
           "name": "group_properties_property_id_properties_id_fk",
           "tableFrom": "group_properties",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -361,12 +338,8 @@
           "name": "group_properties_added_by_profiles_id_fk",
           "tableFrom": "group_properties",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "added_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["added_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -374,10 +347,7 @@
       "compositePrimaryKeys": {
         "group_properties_group_id_property_id_pk": {
           "name": "group_properties_group_id_property_id_pk",
-          "columns": [
-            "group_id",
-            "property_id"
-          ]
+          "columns": ["group_id", "property_id"]
         }
       },
       "uniqueConstraints": {},
@@ -529,12 +499,8 @@
           "name": "properties_listed_by_profiles_id_fk",
           "tableFrom": "properties",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "listed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["listed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -550,51 +516,27 @@
     "public.group_status": {
       "name": "group_status",
       "schema": "public",
-      "values": [
-        "forming",
-        "active",
-        "viewing",
-        "offer_made",
-        "closed",
-        "disbanded"
-      ]
+      "values": ["forming", "active", "viewing", "offer_made", "closed", "disbanded"]
     },
     "public.member_role": {
       "name": "member_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "admin",
-        "member"
-      ]
+      "values": ["owner", "admin", "member"]
     },
     "public.member_status": {
       "name": "member_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "active",
-        "left",
-        "removed"
-      ]
+      "values": ["pending", "active", "left", "removed"]
     },
     "public.property_status": {
       "name": "property_status",
       "schema": "public",
-      "values": [
-        "available",
-        "in_option",
-        "sold",
-        "archived"
-      ]
+      "values": ["available", "in_option", "sold", "archived"]
     },
     "public.property_type": {
       "name": "property_type",
       "schema": "public",
-      "values": [
-        "house",
-        "apartment"
-      ]
+      "values": ["house", "apartment"]
     }
   },
   "schemas": {},
