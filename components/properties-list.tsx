@@ -64,7 +64,7 @@ export function PropertiesList({
   return (
     <div className="space-y-4">
       {properties.map((property, index) => (
-        <>
+        <div key={property.id}>
           <PropertyListItem
             key={property.id}
             property={property}
@@ -73,7 +73,7 @@ export function PropertiesList({
             isFavorite={favorites.includes(property.id)}
           />
           {index < properties.length - 1 && <Separator />}
-        </>
+        </div>
       ))}
     </div>
   )

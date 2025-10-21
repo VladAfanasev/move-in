@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   // This produces .next/standalone with the minimal server and node_modules
   output: "standalone",
   images: {
-    domains: ["picsum.photos"],
+    domains: ["picsum.photos", "images.unsplash.com"],
   },
 }
 

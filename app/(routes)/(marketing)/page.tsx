@@ -41,9 +41,6 @@ export default function LandingPage() {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" className="px-8 py-6 text-lg" asChild>
-                <Link href="/properties">Browse Properties</Link>
-              </Button>
             </div>
           </div>
         </div>
@@ -324,14 +321,6 @@ export default function LandingPage() {
                 Start Your Journey
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-secondary-foreground px-8 py-6 text-lg text-secondary-foreground hover:bg-secondary-foreground hover:text-secondary"
-              asChild
-            >
-              <Link href="/contact">Talk to an Expert</Link>
             </Button>
           </div>
         </div>
