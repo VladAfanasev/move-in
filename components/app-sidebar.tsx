@@ -1,6 +1,6 @@
 "use client"
 
-import { Building2, ChevronsUpDown, Home, LogOut, Settings, User2, Users } from "lucide-react"
+import { Building2, ChevronsUpDown, Home, LogOut, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "@/app/auth/actions"
@@ -20,7 +20,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -34,20 +33,20 @@ const items = [
     icon: Home,
   },
   {
-    title: "Properties",
+    title: "Woningen overzicht",
     url: "/dashboard/properties",
     icon: Building2,
   },
   {
-    title: "Groups",
+    title: "Mijn groepen",
     url: "/dashboard/groups",
     icon: Users,
   },
-  {
-    title: "Settings",
-    url: "/dashboard/settings",
-    icon: Settings,
-  },
+  // {
+  //   title: "Instellingen",
+  //   url: "/dashboard/settings",
+  //   icon: Settings,
+  // },
 ]
 
 export function AppSidebar() {
@@ -83,19 +82,22 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Platform</SidebarGroupLabel>
+          {/* <SidebarGroupLabel>Platform</SidebarGroupLabel> */}
           <SidebarGroupContent>
             <SidebarMenu>
-              {items.map(item => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={pathname === item.url}>
-                    <Link href={item.url}>
-                      <item.icon className="size-4" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {items.map(item => {
+                const isActive = pathname === item.url || pathname.startsWith(`${item.url}/`)
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive}>
+                      <Link href={item.url}>
+                        <item.icon className="size-4" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -106,7 +108,7 @@ export function AppSidebar() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton
-                  size="lg"
+                  // size="lg"
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
@@ -118,7 +120,7 @@ export function AppSidebar() {
                     <span className="truncate font-semibold">
                       {user?.email?.split("@")[0] || "User"}
                     </span>
-                    <span className="truncate text-xs">{user?.email || "user@example.com"}</span>
+                    <span className="truncate text-xs">{user?.email}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
                 </SidebarMenuButton>
@@ -140,11 +142,11 @@ export function AppSidebar() {
                       <span className="truncate font-semibold">
                         {user?.email?.split("@")[0] || "User"}
                       </span>
-                      <span className="truncate text-xs">{user?.email || "user@example.com"}</span>
+                      <span className="truncate text-xs">{user?.email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                {/* <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/profile">
                     <User2 className="mr-2 h-4 w-4" />
@@ -156,7 +158,7 @@ export function AppSidebar() {
                     <Settings className="mr-2 h-4 w-4" />
                     Settings
                   </Link>
-                </DropdownMenuItem>
+                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />
