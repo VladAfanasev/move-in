@@ -15,7 +15,6 @@ import { createGroupAction } from "../../actions"
 import { type CreateGroupFormData, createGroupSchema } from "../schema"
 
 export function CreateGroupForm() {
-
   const form = useForm({
     defaultValues: {
       groepsnaam: "",
@@ -135,11 +134,7 @@ export function CreateGroupForm() {
               </Link>
               <form.Subscribe selector={state => [state.canSubmit, state.isSubmitting]}>
                 {([canSubmit, isSubmitting]) => (
-                  <Button
-                    type="submit"
-                    disabled={!canSubmit || isSubmitting}
-                    className="flex-1"
-                  >
+                  <Button type="submit" disabled={!canSubmit || isSubmitting} className="flex-1">
                     <Save className="mr-2 h-4 w-4" />
                     {isSubmitting ? "Aanmaken..." : "Groep aanmaken"}
                   </Button>

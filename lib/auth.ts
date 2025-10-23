@@ -5,11 +5,7 @@ import { profiles } from "@/db/schema"
 export async function ensureUserProfile(userId: string, email: string, fullName?: string) {
   try {
     // Check if profile already exists
-    const existingProfile = await db
-      .select()
-      .from(profiles)
-      .where(eq(profiles.id, userId))
-      .limit(1)
+    const existingProfile = await db.select().from(profiles).where(eq(profiles.id, userId)).limit(1)
 
     if (existingProfile.length > 0) {
       return existingProfile[0]

@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet"
+import { inviteMemberAction } from "../invite-actions"
 
 interface InviteMemberDialogProps {
   children: React.ReactNode
@@ -25,20 +26,24 @@ export function InviteMemberDialog({ children, groupId }: InviteMemberDialogProp
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState("")
   const router = useRouter()
+  const emailId = useId()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setLoading(true)
 
     try {
-      // TODO: Implement user lookup by email and invitation logic
-      // For now, show a success message
+      await inviteMemberAction(groupId, email)
       toast.success(`Uitnodiging verstuurd naar ${email}`)
       setEmail("")
       setOpen(false)
       router.refresh()
     } catch (error) {
-      toast.error("Er is een fout opgetreden bij het versturen van de uitnodiging")
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Er is een fout opgetreden bij het versturen van de uitnodiging"
+      toast.error(errorMessage)
       console.error("Error inviting member:", error)
     } finally {
       setLoading(false)
@@ -58,9 +63,9 @@ export function InviteMemberDialog({ children, groupId }: InviteMemberDialogProp
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="email">E-mailadres *</Label>
+            <Label htmlFor={emailId}>E-mailadres *</Label>
             <Input
-              id="email"
+              id={emailId}
               type="email"
               placeholder="bijv. naam@voorbeeld.nl"
               value={email}

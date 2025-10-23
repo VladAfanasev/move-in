@@ -3,14 +3,13 @@ import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
-import { getGroupById, getGroupMembers } from "@/lib/groups"
+import { getGroupById, getGroupInvitations, getGroupMembers } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
-
-import { GroupMembers } from "./components/group-members"
-import { InviteMemberDialog } from "./components/invite-member-dialog"
+import { updateGroupDetailsAction } from "./actions"
 import { EditableText } from "./components/editable-text"
 import { GroupActionsMenu } from "./components/group-actions-menu"
-import { updateGroupDetailsAction } from "./actions"
+import { GroupMembers } from "./components/group-members"
+import { InviteMemberDialog } from "./components/invite-member-dialog"
 
 interface GroupDetailPageProps {
   params: Promise<{
@@ -20,7 +19,7 @@ interface GroupDetailPageProps {
 
 const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
   const { id } = await params
-  
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -31,7 +30,11 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
     redirect("/auth/login")
   }
 
-  const [group, members] = await Promise.all([getGroupById(id), getGroupMembers(id)])
+  const [group, members, invitations] = await Promise.all([
+    getGroupById(id),
+    getGroupMembers(id),
+    getGroupInvitations(id),
+  ])
 
   if (!group) {
     notFound()
@@ -44,15 +47,6 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
   }
 
   const canEdit = userMember.role === "owner" || userMember.role === "admin"
-
-  const statusLabels = {
-    forming: "Formeren",
-    active: "Actief",
-    viewing: "Bezichtigen",
-    offer_made: "Bod uitgebracht",
-    closed: "Gesloten",
-    disbanded: "Ontbonden",
-  }
 
   const updateGroupName = async (name: string) => {
     "use server"
@@ -102,7 +96,6 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
                 />
               </div>
               <div className="mt-4 flex flex-wrap gap-4 text-muted-foreground text-sm">
-                <span className="font-medium">Status: {statusLabels[group.status]}</span>
                 {group.targetBudget && (
                   <span>Budget: €{Number(group.targetBudget).toLocaleString()}</span>
                 )}
@@ -118,7 +111,7 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
                     Lid uitnodigen
                   </Button>
                 </InviteMemberDialog>
-                <GroupActionsMenu 
+                <GroupActionsMenu
                   groupId={group.id}
                   groupName={group.name}
                   userRole={userMember.role}
@@ -129,7 +122,12 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
         </div>
 
         <div className="space-y-6">
-          <GroupMembers members={members} currentUserRole={userMember.role} groupId={group.id} />
+          <GroupMembers
+            members={members}
+            invitations={invitations}
+            currentUserRole={userMember.role}
+            groupId={group.id}
+          />
         </div>
       </div>
     </div>

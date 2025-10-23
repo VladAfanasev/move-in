@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { updateMemberStatusAction } from "../actions"
+import { cancelInvitationAction } from "../cancel-invitation-action"
 
 interface Member {
   userId: string
@@ -28,8 +29,21 @@ interface Member {
   avatarUrl: string | null
 }
 
+interface Invitation {
+  id: string
+  email: string
+  role: "owner" | "admin" | "member"
+  status: "pending" | "accepted" | "expired" | "cancelled"
+  token: string
+  expiresAt: Date
+  createdAt: Date
+  invitedByName: string | null
+  invitedByEmail: string | null
+}
+
 interface GroupMembersProps {
   members: Member[]
+  invitations: Invitation[]
   currentUserRole: "owner" | "admin" | "member"
   groupId: string
 }
@@ -60,7 +74,12 @@ const statusColors = {
   removed: "bg-red-100 text-red-800",
 }
 
-export function GroupMembers({ members, currentUserRole, groupId }: GroupMembersProps) {
+export function GroupMembers({
+  members,
+  invitations,
+  currentUserRole,
+  groupId,
+}: GroupMembersProps) {
   const [loading, setLoading] = useState<string | null>(null)
   const router = useRouter()
 
@@ -87,8 +106,27 @@ export function GroupMembers({ members, currentUserRole, groupId }: GroupMembers
     }
   }
 
+  const handleCancelInvitation = async (invitationId: string) => {
+    setLoading(invitationId)
+
+    try {
+      await cancelInvitationAction(invitationId)
+      toast.success("Uitnodiging geannuleerd")
+      router.refresh()
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Er is een fout opgetreden"
+      toast.error(errorMessage)
+      console.error("Error cancelling invitation:", error)
+    } finally {
+      setLoading(null)
+    }
+  }
+
   const activeMembers = members.filter(member => member.status === "active")
   const pendingMembers = members.filter(member => member.status === "pending")
+  const pendingInvitations = invitations.filter(
+    invitation => invitation.status === "pending" && new Date(invitation.expiresAt) > new Date(),
+  )
 
   return (
     <div className="space-y-6">
@@ -172,16 +210,17 @@ export function GroupMembers({ members, currentUserRole, groupId }: GroupMembers
         </CardContent>
       </Card>
 
-      {/* Pending Members */}
-      {pendingMembers.length > 0 && (
+      {/* Pending Members & Invitations */}
+      {(pendingMembers.length > 0 || pendingInvitations.length > 0) && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="h-5 w-5" />
-              Uitnodigingen ({pendingMembers.length})
+              Uitnodigingen ({pendingMembers.length + pendingInvitations.length})
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Pending Members (already accepted but pending approval) */}
             {pendingMembers.map(member => (
               <div
                 key={member.userId}
@@ -220,6 +259,52 @@ export function GroupMembers({ members, currentUserRole, groupId }: GroupMembers
                     size="sm"
                     onClick={() => handleMemberAction(member.userId, "remove")}
                     disabled={loading === member.userId}
+                  >
+                    <UserX className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            ))}
+
+            {/* Pending Invitations (email sent but not yet accepted) */}
+            {pendingInvitations.map(invitation => (
+              <div
+                key={invitation.id}
+                className="flex items-center justify-between rounded-lg border bg-blue-50 p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarFallback>{invitation.email.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{invitation.email}</span>
+                      <Badge className="bg-blue-100 text-blue-800" variant="secondary">
+                        Uitnodiging verstuurd
+                      </Badge>
+                      <Badge variant="outline" className="flex items-center gap-1">
+                        <User className="h-3 w-3" />
+                        {roleLabels[invitation.role]}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center gap-4 text-muted-foreground text-sm">
+                      <span>
+                        Uitgenodigd door: {invitation.invitedByName || invitation.invitedByEmail}
+                      </span>
+                      <span>
+                        Verloopt: {new Date(invitation.expiresAt).toLocaleDateString("nl-NL")}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {(currentUserRole === "owner" || currentUserRole === "admin") && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCancelInvitation(invitation.id)}
+                    disabled={loading === invitation.id}
                   >
                     <UserX className="h-4 w-4" />
                   </Button>

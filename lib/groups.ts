@@ -1,6 +1,6 @@
 import { and, count, desc, eq } from "drizzle-orm"
 import { db } from "@/db/client"
-import { buyingGroups, groupMembers, profiles } from "@/db/schema"
+import { buyingGroups, groupInvitations, groupMembers, profiles } from "@/db/schema"
 
 export async function getUserGroups(userId: string) {
   try {
@@ -76,6 +76,32 @@ export async function getGroupMembers(groupId: string) {
   } catch (error) {
     console.error("Error fetching group members:", error)
     throw new Error("Failed to fetch group members")
+  }
+}
+
+export async function getGroupInvitations(groupId: string) {
+  try {
+    const result = await db
+      .select({
+        id: groupInvitations.id,
+        email: groupInvitations.email,
+        role: groupInvitations.role,
+        status: groupInvitations.status,
+        token: groupInvitations.token,
+        expiresAt: groupInvitations.expiresAt,
+        createdAt: groupInvitations.createdAt,
+        invitedByName: profiles.fullName,
+        invitedByEmail: profiles.email,
+      })
+      .from(groupInvitations)
+      .leftJoin(profiles, eq(groupInvitations.invitedBy, profiles.id))
+      .where(eq(groupInvitations.groupId, groupId))
+      .orderBy(groupInvitations.createdAt)
+
+    return result
+  } catch (error) {
+    console.error("Error fetching group invitations:", error)
+    throw new Error("Failed to fetch group invitations")
   }
 }
 
@@ -165,7 +191,7 @@ export async function updateGroupDetails(
   data: {
     name?: string
     description?: string
-  }
+  },
 ) {
   try {
     const [updatedGroup] = await db

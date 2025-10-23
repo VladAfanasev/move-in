@@ -15,6 +15,13 @@
       "when": 1760706863566,
       "tag": "0001_large_karnak",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1761152201490,
+      "tag": "0002_giant_snowbird",
+      "breakpoints": true
     }
   ]
 }

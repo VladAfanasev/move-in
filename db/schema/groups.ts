@@ -26,6 +26,13 @@ export const memberRole = pgEnum("member_role", ["owner", "admin", "member"])
 
 export const memberStatus = pgEnum("member_status", ["pending", "active", "left", "removed"])
 
+export const invitationStatus = pgEnum("invitation_status", [
+  "pending",
+  "accepted",
+  "expired",
+  "cancelled",
+])
+
 // Buying groups for shared property purchases
 export const buyingGroups = pgTable("buying_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -67,6 +74,26 @@ export const groupMembers = pgTable(
     pk: primaryKey({ columns: [table.groupId, table.userId] }),
   }),
 )
+
+// Group invitations for email-based invites
+export const groupInvitations = pgTable("group_invitations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  groupId: uuid("group_id")
+    .references(() => buyingGroups.id, { onDelete: "cascade" })
+    .notNull(),
+  email: varchar("email", { length: 255 }).notNull(),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  invitedBy: uuid("invited_by")
+    .references(() => profiles.id)
+    .notNull(),
+  role: memberRole("role").notNull().default("member"),
+  status: invitationStatus("status").notNull().default("pending"),
+  expiresAt: timestamp("expires_at").notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  acceptedBy: uuid("accepted_by").references(() => profiles.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
 
 // Properties saved/favorited by groups
 export const groupProperties = pgTable(

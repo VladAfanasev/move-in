@@ -1,18 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { MoreVertical, Settings, Trash2, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { MoreVertical, Trash2, Settings, Users } from "lucide-react"
+import { useState } from "react"
 import { toast } from "sonner"
-
-import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +14,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 import { deleteGroupAction } from "../actions"
 
@@ -42,7 +41,7 @@ export function GroupActionsMenu({ groupId, groupName, userRole }: GroupActionsM
 
   const handleDeleteGroup = async () => {
     setIsDeleting(true)
-    
+
     try {
       await deleteGroupAction(groupId)
       toast.success("Groep succesvol verwijderd")
@@ -78,7 +77,7 @@ export function GroupActionsMenu({ groupId, groupName, userRole }: GroupActionsM
               <DropdownMenuSeparator />
             </>
           )}
-          
+
           {canDelete && (
             <DropdownMenuItem
               onClick={() => setShowDeleteDialog(true)}
@@ -99,14 +98,12 @@ export function GroupActionsMenu({ groupId, groupName, userRole }: GroupActionsM
               Weet je zeker dat je de groep "{groupName}" wilt verwijderen?
               <br />
               <br />
-              Deze actie kan niet ongedaan worden gemaakt. Alle gegevens van de groep,
-              inclusief leden en bewaarde woningen, zullen permanent worden verwijderd.
+              Deze actie kan niet ongedaan worden gemaakt. Alle gegevens van de groep, inclusief
+              leden en bewaarde woningen, zullen permanent worden verwijderd.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>
-              Annuleren
-            </AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>Annuleren</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteGroup}
               disabled={isDeleting}
