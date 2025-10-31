@@ -22,7 +22,6 @@ interface GroupsListProps {
   groups: Group[]
 }
 
-
 export function GroupsList({ groups }: GroupsListProps) {
   if (groups.length === 0) {
     return (

@@ -1,12 +1,12 @@
 import { eq } from "drizzle-orm"
 import { CheckCircle, Clock, XCircle } from "lucide-react"
 import { redirect } from "next/navigation"
+import { acceptInvitationAction } from "@/actions/groups/invite"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { db } from "@/db/client"
 import { buyingGroups, groupInvitations, profiles } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
-import { acceptInvitationAction } from "../../[id]/invite-actions"
 
 interface InvitePageProps {
   params: {

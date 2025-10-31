@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation"
 
 import { SiteHeader } from "@/components/site-header"
+import { CreateGroupForm } from "@/app/features/groups/components/create-group-form"
 import { createClient } from "@/lib/supabase/server"
-
-import { CreateGroupForm } from "./components/create-group-form"
 
 const CreateGroupPage = async () => {
   const supabase = await createClient()

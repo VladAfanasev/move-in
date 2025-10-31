@@ -4,6 +4,8 @@ import { Crown, MoreHorizontal, Shield, User, Users, UserX } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
+import { cancelInvitationAction } from "@/actions/groups/invite"
+import { updateMemberStatusAction } from "@/actions/groups/management"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,8 +16,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { updateMemberStatusAction } from "../actions"
-import { cancelInvitationAction } from "../cancel-invitation-action"
 
 interface Member {
   userId: string

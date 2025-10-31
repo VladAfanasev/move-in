@@ -1,15 +1,15 @@
 import { ArrowLeft, Users } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { updateGroupDetailsAction } from "@/actions/groups/management"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
+import { EditableText } from "@/app/features/groups/components/editable-text"
+import { GroupActionsMenu } from "@/app/features/groups/components/group-actions-menu"
+import { GroupMembers } from "@/app/features/groups/components/group-members"
+import { InviteMemberPopover } from "@/app/features/groups/components/invite-member-popover"
 import { getGroupById, getGroupInvitations, getGroupMembers } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
-import { updateGroupDetailsAction } from "./actions"
-import { EditableText } from "./components/editable-text"
-import { GroupActionsMenu } from "./components/group-actions-menu"
-import { GroupMembers } from "./components/group-members"
-import { InviteMemberDialog } from "./components/invite-member-dialog"
 
 interface GroupDetailPageProps {
   params: Promise<{
@@ -47,6 +47,11 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
   }
 
   const canEdit = userMember.role === "owner" || userMember.role === "admin"
+
+  // Calculate member info for leave group functionality
+  const activeMembers = members.filter(m => m.status === "active")
+  const totalActiveMembers = activeMembers.length
+  const isLastMember = totalActiveMembers === 1
 
   const updateGroupName = async (name: string) => {
     "use server"
@@ -103,21 +108,22 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
               </div>
             </div>
 
-            {(userMember.role === "owner" || userMember.role === "admin") && (
-              <div className="flex gap-2">
-                <InviteMemberDialog groupId={group.id}>
-                  <Button variant="outline">
-                    <Users className="mr-2 h-4 w-4" />
-                    Lid uitnodigen
-                  </Button>
-                </InviteMemberDialog>
-                <GroupActionsMenu
-                  groupId={group.id}
-                  groupName={group.name}
-                  userRole={userMember.role}
-                />
-              </div>
-            )}
+            <div className="flex gap-2">
+              <InviteMemberPopover groupId={group.id}>
+                <Button variant="outline">
+                  <Users className="mr-2 h-4 w-4" />
+                  Lid uitnodigen
+                </Button>
+              </InviteMemberPopover>
+
+              <GroupActionsMenu
+                groupId={group.id}
+                groupName={group.name}
+                userRole={userMember.role}
+                isLastMember={isLastMember}
+                totalMembers={totalActiveMembers}
+              />
+            </div>
           </div>
         </div>
 

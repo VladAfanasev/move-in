@@ -5,6 +5,7 @@ import { and, eq } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import { db } from "@/db/client"
 import { buyingGroups, groupInvitations, groupMembers, profiles } from "@/db/schema"
+import { sendInvitationEmail } from "@/lib/email"
 import { createClient } from "@/lib/supabase/server"
 
 export async function inviteMemberAction(groupId: string, email: string) {
@@ -87,33 +88,51 @@ export async function inviteMemberAction(groupId: string, email: string) {
     throw new Error("Failed to create invitation")
   }
 
-  // Get group details for email
-  const group = await db
-    .select({ name: buyingGroups.name })
-    .from(buyingGroups)
-    .where(eq(buyingGroups.id, groupId))
-    .limit(1)
+  // Get group details and inviter info for email
+  const [group, inviter] = await Promise.all([
+    db
+      .select({ name: buyingGroups.name, description: buyingGroups.description })
+      .from(buyingGroups)
+      .where(eq(buyingGroups.id, groupId))
+      .limit(1),
+    db
+      .select({ fullName: profiles.fullName, email: profiles.email })
+      .from(profiles)
+      .where(eq(profiles.id, user.id))
+      .limit(1),
+  ])
 
-  // Send invitation email using Supabase Auth
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
   const inviteUrl = `${baseUrl}/dashboard/groups/invite/${token}`
 
-  const { error: emailError } = await supabase.auth.admin.inviteUserByEmail(email, {
-    redirectTo: inviteUrl,
-    data: {
-      group_name: group[0]?.name || "Buying Group",
-      invite_token: token,
-      group_id: groupId,
-    },
+  // Prepare email parameters
+  const groupName = group[0]?.name || "Koopgroep"
+  const inviterName = inviter[0]?.fullName || inviter[0]?.email || "Een groepslid"
+  const expiryDate = expiresAt.toLocaleDateString("nl-NL")
+
+  // Send invitation email using configured service
+  const emailResult = await sendInvitationEmail({
+    to: email,
+    groupName,
+    groupDescription: group[0]?.description || undefined,
+    inviterName,
+    inviteUrl,
+    expiryDate,
   })
 
-  if (emailError) {
-    console.error("Failed to send invitation email:", emailError)
+  if (!emailResult.success) {
+    console.error("Failed to prepare invitation email:", emailResult.error)
     // Don't throw here as the invitation record was created successfully
-    // We could implement a retry mechanism or fallback email service
   }
 
-  return { success: true, message: "Invitation sent successfully" }
+  return {
+    success: true,
+    message: "Invitation created successfully",
+    inviteUrl,
+    mailtoLink: emailResult.mailtoLink,
+    emailSubject: emailResult.emailSubject,
+    emailBody: emailResult.emailBody,
+  }
 }
 
 export async function acceptInvitationAction(token: string) {
@@ -204,4 +223,49 @@ export async function acceptInvitationAction(token: string) {
   }
 
   return { groupId: inviteData.groupId }
+}
+
+export async function cancelInvitationAction(invitationId: string) {
+  const supabase = await createClient()
+
+  // Get current user
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    throw new Error("Unauthorized")
+  }
+
+  // Get invitation details first
+  const invitation = await db
+    .select({ groupId: groupInvitations.groupId })
+    .from(groupInvitations)
+    .where(eq(groupInvitations.id, invitationId))
+    .limit(1)
+
+  if (invitation.length === 0) {
+    throw new Error("Invitation not found")
+  }
+
+  // Check if user has permission to cancel invitations
+  const membership = await db
+    .select({ role: groupMembers.role })
+    .from(groupMembers)
+    .where(and(eq(groupMembers.groupId, invitation[0].groupId), eq(groupMembers.userId, user.id)))
+    .limit(1)
+
+  const userRole = membership[0]?.role
+  if (!(userRole && ["admin", "owner"].includes(userRole))) {
+    throw new Error("Insufficient permissions to cancel invitations")
+  }
+
+  // Cancel the invitation
+  await db
+    .update(groupInvitations)
+    .set({ status: "cancelled" })
+    .where(eq(groupInvitations.id, invitationId))
+
+  return { success: true }
 }

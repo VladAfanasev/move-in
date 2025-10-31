@@ -3,10 +3,9 @@ import Link from "next/link"
 import { redirect } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
+import { GroupsList } from "@/app/features/groups/components/groups-list"
 import { getUserGroups } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
-
-import { GroupsList } from "./components/groups-list"
 
 const GroupPage = async () => {
   const supabase = await createClient()

@@ -1,9 +1,10 @@
 "use client"
 
-import { MoreVertical, Settings, Trash2, Users } from "lucide-react"
+import { LogOut, MoreVertical, Settings, Trash2, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { toast } from "sonner"
+import { deleteGroupAction } from "@/actions/groups/management"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,16 +23,23 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-
-import { deleteGroupAction } from "../actions"
+import { LeaveGroupDialog } from "./leave-group-dialog"
 
 interface GroupActionsMenuProps {
   groupId: string
   groupName: string
   userRole: "owner" | "admin" | "member"
+  isLastMember: boolean
+  totalMembers: number
 }
 
-export function GroupActionsMenu({ groupId, groupName, userRole }: GroupActionsMenuProps) {
+export function GroupActionsMenu({
+  groupId,
+  groupName,
+  userRole,
+  isLastMember,
+  totalMembers,
+}: GroupActionsMenuProps) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
@@ -78,14 +86,35 @@ export function GroupActionsMenu({ groupId, groupName, userRole }: GroupActionsM
             </>
           )}
 
-          {canDelete && (
-            <DropdownMenuItem
-              onClick={() => setShowDeleteDialog(true)}
-              className="text-red-600 focus:text-red-600"
+          {!isLastMember && (
+            <LeaveGroupDialog
+              groupId={groupId}
+              groupName={groupName}
+              isOwner={userRole === "owner"}
+              isLastMember={isLastMember}
+              totalMembers={totalMembers}
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Groep verwijderen
-            </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={e => e.preventDefault()}
+                className="text-orange-600 focus:text-orange-600"
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Groep verlaten
+              </DropdownMenuItem>
+            </LeaveGroupDialog>
+          )}
+
+          {canDelete && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => setShowDeleteDialog(true)}
+                className="text-red-600 focus:text-red-600"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Groep verwijderen
+              </DropdownMenuItem>
+            </>
           )}
         </DropdownMenuContent>
       </DropdownMenu>
