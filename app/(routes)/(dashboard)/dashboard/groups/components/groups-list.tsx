@@ -9,7 +9,6 @@ interface Group {
   id: string
   name: string
   description: string | null
-  status: "forming" | "active" | "viewing" | "offer_made" | "closed" | "disbanded"
   targetBudget: string | null
   targetLocation: string | null
   maxMembers: number | null
@@ -23,23 +22,6 @@ interface GroupsListProps {
   groups: Group[]
 }
 
-const statusLabels = {
-  forming: "Formeren",
-  active: "Actief",
-  viewing: "Bezichtigen",
-  offer_made: "Bod uitgebracht",
-  closed: "Gesloten",
-  disbanded: "Ontbonden",
-}
-
-const statusColors = {
-  forming: "bg-blue-100 text-blue-800",
-  active: "bg-green-100 text-green-800",
-  viewing: "bg-yellow-100 text-yellow-800",
-  offer_made: "bg-orange-100 text-orange-800",
-  closed: "bg-gray-100 text-gray-800",
-  disbanded: "bg-red-100 text-red-800",
-}
 
 export function GroupsList({ groups }: GroupsListProps) {
   if (groups.length === 0) {
@@ -63,9 +45,6 @@ export function GroupsList({ groups }: GroupsListProps) {
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <CardTitle className="text-lg">{group.name}</CardTitle>
-                  <Badge className={`mt-2 ${statusColors[group.status]}`} variant="secondary">
-                    {statusLabels[group.status]}
-                  </Badge>
                 </div>
                 {group.userRole && (
                   <Badge variant="outline" className="ml-2">
