@@ -4,7 +4,6 @@ import { redirect } from "next/navigation"
 import { GroupsList } from "@/app/features/groups/components/groups-list"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
-import { getUserGroups } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
 
 const GroupPage = async () => {
@@ -18,6 +17,9 @@ const GroupPage = async () => {
     redirect("/auth/login")
   }
 
+  // Dynamic imports to avoid build-time database connection
+  const { getUserGroups } = await import("@/lib/groups")
+  
   const groups = await getUserGroups(user.id)
 
   return (

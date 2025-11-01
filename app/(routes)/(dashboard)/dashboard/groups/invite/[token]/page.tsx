@@ -1,11 +1,8 @@
-import { eq } from "drizzle-orm"
 import { CheckCircle, Clock, XCircle } from "lucide-react"
 import { redirect } from "next/navigation"
 import { acceptInvitationAction } from "@/actions/groups/invite"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { db } from "@/db/client"
-import { buyingGroups, groupInvitations, profiles } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
 
 interface InvitePageProps {
@@ -16,6 +13,11 @@ interface InvitePageProps {
 
 async function getInvitationDetails(token: string) {
   try {
+    // Dynamic imports to avoid build-time database connection
+    const { eq } = await import("drizzle-orm")
+    const { db } = await import("@/db/client")
+    const { buyingGroups, groupInvitations, profiles } = await import("@/db/schema")
+    
     const invitation = await db
       .select({
         id: groupInvitations.id,

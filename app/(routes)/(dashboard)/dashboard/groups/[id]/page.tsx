@@ -10,7 +10,6 @@ import { GroupPropertiesSection } from "@/components/group-properties-section"
 import { MemberAvatarStack } from "@/components/member-avatar-stack"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
-import { getGroupById, getGroupMembers, getGroupPropertiesWithDetails } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
 
 interface GroupDetailPageProps {
@@ -32,6 +31,9 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
     redirect("/auth/login")
   }
 
+  // Dynamic imports to avoid build-time database connection
+  const { getGroupById, getGroupMembers, getGroupPropertiesWithDetails } = await import("@/lib/groups")
+  
   const [group, members, groupProperties] = await Promise.all([
     getGroupById(id),
     getGroupMembers(id),

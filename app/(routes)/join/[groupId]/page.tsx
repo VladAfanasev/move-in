@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation"
 import { JoinGroupClient } from "@/app/features/join/components/join-group-client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { getGroupById, getGroupMembers } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
 
 interface JoinGroupPageProps {
@@ -17,6 +16,9 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
   const { groupId } = await params
   const supabase = await createClient()
 
+  // Dynamic imports to avoid build-time database connection
+  const { getGroupById, getGroupMembers } = await import("@/lib/groups")
+  
   // Get group details
   const [group, members] = await Promise.all([getGroupById(groupId), getGroupMembers(groupId)])
 
