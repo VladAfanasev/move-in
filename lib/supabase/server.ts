@@ -12,13 +12,10 @@ export async function createClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co"
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "dummy-anon-key"
 
-  if (
-    !(
-      (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-      isBuildTime
-    )
-  ) {
-    throw new Error("Missing Supabase environment variables")
+  if (!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+    if (!isBuildTime) {
+      throw new Error("Missing Supabase environment variables")
+    }
   }
 
   // Return dummy client during build time
