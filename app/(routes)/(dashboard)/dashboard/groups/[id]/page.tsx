@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
 import type { GroupMemberWithProfile } from "@/lib/types"
 
+// Force dynamic rendering to prevent build-time prerendering
+export const dynamic = 'force-dynamic'
+
 interface GroupDetailPageProps {
   params: Promise<{
     id: string

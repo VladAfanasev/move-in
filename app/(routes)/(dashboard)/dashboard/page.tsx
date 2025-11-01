@@ -6,6 +6,9 @@ import { SiteHeader } from "@/components/site-header"
 
 import data from "./data.json"
 
+// Force dynamic rendering to prevent build-time prerendering
+export const dynamic = 'force-dynamic'
+
 export default function Page() {
   return (
     <div className="flex flex-1 flex-col">
