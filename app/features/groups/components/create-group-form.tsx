@@ -5,12 +5,12 @@ import { ArrowLeft, Save } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { createGroupAction } from "@/actions/groups/management"
+import { type CreateGroupFormData, createGroupSchema } from "@/app/features/groups/schema"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { type CreateGroupFormData, createGroupSchema } from "@/app/features/groups/schema"
 
 export function CreateGroupForm() {
   const form = useForm({

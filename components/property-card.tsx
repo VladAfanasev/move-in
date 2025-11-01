@@ -53,7 +53,7 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
     }
   }
 
-  const primaryImage = property.images?.[0] || "/placeholder-property.jpg"
+  const primaryImage = property.images?.[0] || "/placeholder-property.svg"
 
   return (
     <Card className="overflow-hidden transition-shadow duration-200 hover:shadow-lg">

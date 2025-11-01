@@ -3,6 +3,7 @@
 import clsx from "clsx"
 import { Bath, Bed, Heart, VectorSquare } from "lucide-react"
 import Image from "next/image"
+import { AddPropertyToGroup } from "@/components/add-property-to-group"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -61,7 +62,7 @@ export function PropertyListItem({
     }
   }
 
-  const primaryImage = property.images?.[0] || "/placeholder-property.jpg"
+  const primaryImage = property.images?.[0] || "/placeholder-property.svg"
 
   return (
     <Card className="overflow-hidden rounded-none border-none shadow-none">
@@ -84,7 +85,8 @@ export function PropertyListItem({
               </div>
             ) : null}
 
-            <div className="absolute top-3 right-3">
+            <div className="absolute top-3 right-3 flex gap-2">
+              <AddPropertyToGroup propertyId={property.id} />
               <Button
                 variant="ghost"
                 size="sm"

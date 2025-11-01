@@ -5,7 +5,20 @@ const nextConfig: NextConfig = {
   // This produces .next/standalone with the minimal server and node_modules
   output: "standalone",
   images: {
-    domains: ["picsum.photos", "images.unsplash.com"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "picsum.photos",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        port: "",
+        pathname: "/**",
+      },
+    ],
   },
 }
 

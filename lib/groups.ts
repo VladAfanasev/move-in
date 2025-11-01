@@ -1,9 +1,31 @@
-import { and, count, desc, eq } from "drizzle-orm"
+import { and, count, desc, eq, inArray } from "drizzle-orm"
 import { db } from "@/db/client"
-import { buyingGroups, groupInvitations, groupMembers, profiles } from "@/db/schema"
+import {
+  buyingGroups,
+  groupInvitations,
+  groupMembers,
+  groupProperties,
+  profiles,
+  properties,
+} from "@/db/schema"
 
 export async function getUserGroups(userId: string) {
   try {
+    // Get groups the user is a member of with their role/status
+    const userMemberships = await db
+      .select({
+        groupId: groupMembers.groupId,
+        role: groupMembers.role,
+        status: groupMembers.status,
+      })
+      .from(groupMembers)
+      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "active")))
+
+    if (userMemberships.length === 0) {
+      return []
+    }
+
+    // Get group details with member counts
     const result = await db
       .select({
         id: buyingGroups.id,
@@ -14,12 +36,18 @@ export async function getUserGroups(userId: string) {
         maxMembers: buyingGroups.maxMembers,
         createdAt: buyingGroups.createdAt,
         memberCount: count(groupMembers.userId),
-        userRole: groupMembers.role,
-        userStatus: groupMembers.status,
       })
       .from(buyingGroups)
-      .leftJoin(groupMembers, eq(buyingGroups.id, groupMembers.groupId))
-      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "active")))
+      .leftJoin(
+        groupMembers,
+        and(eq(buyingGroups.id, groupMembers.groupId), eq(groupMembers.status, "active")),
+      )
+      .where(
+        inArray(
+          buyingGroups.id,
+          userMemberships.map(m => m.groupId),
+        ),
+      )
       .groupBy(
         buyingGroups.id,
         buyingGroups.name,
@@ -28,12 +56,18 @@ export async function getUserGroups(userId: string) {
         buyingGroups.targetLocation,
         buyingGroups.maxMembers,
         buyingGroups.createdAt,
-        groupMembers.role,
-        groupMembers.status,
       )
       .orderBy(desc(buyingGroups.createdAt))
 
-    return result
+    // Merge user membership data with group data
+    return result.map(group => {
+      const membership = userMemberships.find(m => m.groupId === group.id)
+      return {
+        ...group,
+        userRole: membership?.role || null,
+        userStatus: membership?.status || null,
+      }
+    })
   } catch (error) {
     console.error("Error fetching user groups:", error)
     throw new Error("Failed to fetch user groups")
@@ -221,5 +255,101 @@ export async function deleteGroup(groupId: string) {
   } catch (error) {
     console.error("Error deleting group:", error)
     throw new Error("Failed to delete group")
+  }
+}
+
+export async function addPropertyToGroup(data: {
+  groupId: string
+  propertyId: string
+  addedBy: string
+  notes?: string
+}) {
+  try {
+    const [result] = await db
+      .insert(groupProperties)
+      .values({
+        groupId: data.groupId,
+        propertyId: data.propertyId,
+        addedBy: data.addedBy,
+        notes: data.notes,
+        status: "saved",
+      })
+      .returning()
+
+    return result
+  } catch (error) {
+    console.error("Error adding property to group:", error)
+    throw new Error("Failed to add property to group")
+  }
+}
+
+export async function getGroupProperties(groupId: string) {
+  try {
+    const result = await db
+      .select({
+        propertyId: groupProperties.propertyId,
+        notes: groupProperties.notes,
+        rating: groupProperties.rating,
+        status: groupProperties.status,
+        addedAt: groupProperties.addedAt,
+        addedBy: groupProperties.addedBy,
+      })
+      .from(groupProperties)
+      .where(eq(groupProperties.groupId, groupId))
+      .orderBy(desc(groupProperties.addedAt))
+
+    return result
+  } catch (error) {
+    console.error("Error fetching group properties:", error)
+    throw new Error("Failed to fetch group properties")
+  }
+}
+
+export async function getGroupPropertiesWithDetails(groupId: string) {
+  try {
+    const result = await db
+      .select({
+        // Group property info
+        notes: groupProperties.notes,
+        rating: groupProperties.rating,
+        groupPropertyStatus: groupProperties.status,
+        addedAt: groupProperties.addedAt,
+        addedBy: groupProperties.addedBy,
+        addedByName: profiles.fullName,
+        // Full property details
+        property: {
+          id: properties.id,
+          description: properties.description,
+          address: properties.address,
+          city: properties.city,
+          state: properties.state,
+          zipCode: properties.zipCode,
+          country: properties.country,
+          price: properties.price,
+          bedrooms: properties.bedrooms,
+          bathrooms: properties.bathrooms,
+          squareFeet: properties.squareFeet,
+          lotSize: properties.lotSize,
+          yearBuilt: properties.yearBuilt,
+          propertyType: properties.propertyType,
+          status: properties.status,
+          images: properties.images,
+          features: properties.features,
+          metadata: properties.metadata,
+          createdAt: properties.createdAt,
+          updatedAt: properties.updatedAt,
+          listedBy: properties.listedBy,
+        },
+      })
+      .from(groupProperties)
+      .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
+      .leftJoin(profiles, eq(groupProperties.addedBy, profiles.id))
+      .where(eq(groupProperties.groupId, groupId))
+      .orderBy(desc(groupProperties.addedAt))
+
+    return result
+  } catch (error) {
+    console.error("Error fetching group properties with details:", error)
+    throw new Error("Failed to fetch group properties with details")
   }
 }

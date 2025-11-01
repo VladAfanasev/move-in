@@ -1,14 +1,16 @@
 import { ArrowLeft, Users } from "lucide-react"
+import { revalidatePath } from "next/cache"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { updateGroupDetailsAction } from "@/actions/groups/management"
-import { SiteHeader } from "@/components/site-header"
-import { Button } from "@/components/ui/button"
 import { EditableText } from "@/app/features/groups/components/editable-text"
 import { GroupActionsMenu } from "@/app/features/groups/components/group-actions-menu"
-import { GroupMembers } from "@/app/features/groups/components/group-members"
 import { InviteMemberPopover } from "@/app/features/groups/components/invite-member-popover"
-import { getGroupById, getGroupInvitations, getGroupMembers } from "@/lib/groups"
+import { GroupPropertiesSection } from "@/components/group-properties-section"
+import { MemberAvatarStack } from "@/components/member-avatar-stack"
+import { SiteHeader } from "@/components/site-header"
+import { Button } from "@/components/ui/button"
+import { getGroupById, getGroupMembers, getGroupPropertiesWithDetails } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
 
 interface GroupDetailPageProps {
@@ -30,10 +32,10 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
     redirect("/auth/login")
   }
 
-  const [group, members, invitations] = await Promise.all([
+  const [group, members, groupProperties] = await Promise.all([
     getGroupById(id),
     getGroupMembers(id),
-    getGroupInvitations(id),
+    getGroupPropertiesWithDetails(id),
   ])
 
   if (!group) {
@@ -58,9 +60,9 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
     await updateGroupDetailsAction(id, { name })
   }
 
-  const updateGroupDescription = async (description: string) => {
+  const handleMemberUpdate = async () => {
     "use server"
-    await updateGroupDetailsAction(id, { description })
+    revalidatePath(`/dashboard/groups/${id}`)
   }
 
   return (
@@ -89,7 +91,7 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
                 disabled={!canEdit}
                 maxLength={100}
               />
-              <div className="mt-2">
+              {/* <div className="mt-2">
                 <EditableText
                   value={group.description}
                   onSave={updateGroupDescription}
@@ -99,7 +101,7 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
                   multiline
                   maxLength={500}
                 />
-              </div>
+              </div> */}
               <div className="mt-4 flex flex-wrap gap-4 text-muted-foreground text-sm">
                 {group.targetBudget && (
                   <span>Budget: €{Number(group.targetBudget).toLocaleString()}</span>
@@ -109,6 +111,15 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
             </div>
 
             <div className="flex gap-2">
+              <MemberAvatarStack
+                members={members}
+                maxVisible={4}
+                size="sm"
+                currentUserRole={userMember.role}
+                groupId={group.id}
+                onMemberUpdate={handleMemberUpdate}
+              />
+
               <InviteMemberPopover groupId={group.id}>
                 <Button variant="outline">
                   <Users className="mr-2 h-4 w-4" />
@@ -127,14 +138,7 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
           </div>
         </div>
 
-        <div className="space-y-6">
-          <GroupMembers
-            members={members}
-            invitations={invitations}
-            currentUserRole={userMember.role}
-            groupId={group.id}
-          />
-        </div>
+        <GroupPropertiesSection groupProperties={groupProperties} members={members} />
       </div>
     </div>
   )

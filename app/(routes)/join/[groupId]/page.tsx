@@ -1,11 +1,11 @@
 import { Building2, Euro, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { JoinGroupClient } from "@/app/features/join/components/join-group-client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { getGroupById, getGroupMembers } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
-import { JoinGroupClient } from "@/app/features/join/components/join-group-client"
 
 interface JoinGroupPageProps {
   params: Promise<{

@@ -1,32 +1,24 @@
 # Multi-stage Dockerfile for Next.js 15 app targeting ARM64 (Raspberry Pi 5)
-# Uses Debian slim for maximum compatibility with native binaries
+# Uses bun for faster builds and smaller runtime
 
 # ----- Builder -----
-FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS builder
+FROM --platform=$BUILDPLATFORM oven/bun:1-debian AS builder
 
 ENV NODE_ENV=development \
     NEXT_TELEMETRY_DISABLED=1
 
-# Install system deps (git for some installs, and libc locales just in case)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    git ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 # Install deps first (better layer caching)
-# If you have a lockfile, copy it instead and prefer `npm ci`
-COPY package.json ./
-# If package-lock.json existed we would do: COPY package*.json ./
-# and run: npm ci
-RUN npm install
+COPY package.json bun.lock ./
+RUN bun install --frozen-lockfile
 
 # Copy the rest of the source
 COPY . .
 
 # Build Next.js (standalone output makes the runtime image smaller)
 ENV NODE_ENV=production
-RUN npm run build
+RUN bun run build
 
 # ----- Runner -----
 FROM --platform=linux/arm64 node:20-bookworm-slim AS runner
