@@ -5,6 +5,7 @@ import { JoinGroupClient } from "@/app/features/join/components/join-group-clien
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
+import type { GroupMemberWithProfile } from "@/lib/types"
 
 interface JoinGroupPageProps {
   params: Promise<{
@@ -33,13 +34,13 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
 
   // If user is authenticated, check if already member
   if (user) {
-    const userMember = members.find(member => member.userId === user.id)
+    const userMember = members.find((member: GroupMemberWithProfile) => member.userId === user.id)
     if (userMember && userMember.status === "active") {
       redirect(`/dashboard/groups/${groupId}`)
     }
   }
 
-  const activeMemberCount = members.filter(m => m.status === "active").length
+  const activeMemberCount = members.filter((m: GroupMemberWithProfile) => m.status === "active").length
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">

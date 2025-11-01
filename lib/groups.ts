@@ -45,7 +45,7 @@ export async function getUserGroups(userId: string) {
       .where(
         inArray(
           buyingGroups.id,
-          userMemberships.map(m => m.groupId),
+          userMemberships.map((m: { groupId: string; role: string; status: string }) => m.groupId),
         ),
       )
       .groupBy(
@@ -60,8 +60,8 @@ export async function getUserGroups(userId: string) {
       .orderBy(desc(buyingGroups.createdAt))
 
     // Merge user membership data with group data
-    return result.map(group => {
-      const membership = userMemberships.find(m => m.groupId === group.id)
+    return result.map((group: any) => {
+      const membership = userMemberships.find((m: { groupId: string; role: string; status: string }) => m.groupId === group.id)
       return {
         ...group,
         userRole: membership?.role || null,

@@ -11,6 +11,7 @@ import { MemberAvatarStack } from "@/components/member-avatar-stack"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
+import type { GroupMemberWithProfile } from "@/lib/types"
 
 interface GroupDetailPageProps {
   params: Promise<{
@@ -45,7 +46,7 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
   }
 
   // Check if user is a member of this group
-  const userMember = members.find(member => member.userId === user.id)
+  const userMember = members.find((member: GroupMemberWithProfile) => member.userId === user.id)
   if (!userMember || userMember.status !== "active") {
     redirect("/dashboard/groups")
   }
@@ -53,7 +54,7 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
   const canEdit = userMember.role === "owner" || userMember.role === "admin"
 
   // Calculate member info for leave group functionality
-  const activeMembers = members.filter(m => m.status === "active")
+  const activeMembers = members.filter((m: GroupMemberWithProfile) => m.status === "active")
   const totalActiveMembers = activeMembers.length
   const isLastMember = totalActiveMembers === 1
 

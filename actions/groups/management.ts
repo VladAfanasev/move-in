@@ -11,6 +11,7 @@ import {
   updateMemberStatus,
 } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
+import type { GroupMemberWithProfile } from "@/lib/types"
 
 export async function createGroupAction(formData: FormData) {
   const supabase = await createClient()
@@ -101,7 +102,7 @@ export async function updateGroupDetailsAction(
   try {
     // Check if user has permission to edit the group
     const members = await getGroupMembers(groupId)
-    const userMember = members.find(member => member.userId === user.id)
+    const userMember = members.find((member: GroupMemberWithProfile) => member.userId === user.id)
 
     if (!userMember || (userMember.role !== "owner" && userMember.role !== "admin")) {
       throw new Error("Insufficient permissions to edit group details")
@@ -131,7 +132,7 @@ export async function deleteGroupAction(groupId: string) {
   try {
     // Check if user has permission to delete the group (only owners can delete)
     const members = await getGroupMembers(groupId)
-    const userMember = members.find(member => member.userId === user.id)
+    const userMember = members.find((member: GroupMemberWithProfile) => member.userId === user.id)
 
     if (!userMember || userMember.role !== "owner") {
       throw new Error("Only group owners can delete the group")
