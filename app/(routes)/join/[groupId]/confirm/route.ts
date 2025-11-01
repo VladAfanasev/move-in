@@ -24,7 +24,7 @@ export async function POST(
     // Dynamic imports to avoid build-time database connection
     const { db } = await import("@/db/client")
     const { buyingGroups, groupMembers } = await import("@/db/schema")
-    
+
     // Check if group exists
     const group = await db
       .select({ id: buyingGroups.id, maxMembers: buyingGroups.maxMembers })

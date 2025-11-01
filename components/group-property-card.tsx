@@ -20,7 +20,6 @@ interface GroupPropertyCardProps {
 export function GroupPropertyCard({
   property,
   notes,
-  rating,
   addedAt,
   addedByName,
   onCalculateCosts,
@@ -158,21 +157,6 @@ export function GroupPropertyCard({
                     Toegevoegd op {formatDate(addedAt)}
                     {addedByName && ` door ${addedByName}`}
                   </span>
-                  {rating && (
-                    <div className="flex items-center">
-                      <span className="mr-1">Beoordeling:</span>
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <span
-                            key={`star-${i}`}
-                            className={i < rating ? "text-yellow-400" : "text-gray-300"}
-                          >
-                            ★
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
