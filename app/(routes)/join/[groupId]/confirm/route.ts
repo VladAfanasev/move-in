@@ -1,8 +1,6 @@
 import { and, eq } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import type { NextRequest } from "next/server"
-import { db } from "@/db/client"
-import { buyingGroups, groupMembers } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(
@@ -23,6 +21,10 @@ export async function POST(
   }
 
   try {
+    // Dynamic imports to avoid build-time database connection
+    const { db } = await import("@/db/client")
+    const { buyingGroups, groupMembers } = await import("@/db/schema")
+    
     // Check if group exists
     const group = await db
       .select({ id: buyingGroups.id, maxMembers: buyingGroups.maxMembers })
