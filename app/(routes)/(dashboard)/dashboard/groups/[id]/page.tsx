@@ -33,8 +33,10 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
   }
 
   // Dynamic imports to avoid build-time database connection
-  const { getGroupById, getGroupMembers, getGroupPropertiesWithDetails } = await import("@/lib/groups")
-  
+  const { getGroupById, getGroupMembers, getGroupPropertiesWithDetails } = await import(
+    "@/lib/groups"
+  )
+
   const [group, members, groupProperties] = await Promise.all([
     getGroupById(id),
     getGroupMembers(id),

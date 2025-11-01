@@ -17,7 +17,7 @@ async function getInvitationDetails(token: string) {
     const { eq } = await import("drizzle-orm")
     const { db } = await import("@/db/client")
     const { buyingGroups, groupInvitations, profiles } = await import("@/db/schema")
-    
+
     const invitation = await db
       .select({
         id: groupInvitations.id,

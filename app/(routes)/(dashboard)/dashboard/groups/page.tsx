@@ -19,7 +19,7 @@ const GroupPage = async () => {
 
   // Dynamic imports to avoid build-time database connection
   const { getUserGroups } = await import("@/lib/groups")
-  
+
   const groups = await getUserGroups(user.id)
 
   return (

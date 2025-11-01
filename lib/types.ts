@@ -17,3 +17,15 @@ export interface GroupMemberWithProfile {
   email: string | null
   avatarUrl: string | null
 }
+
+// Type for group with member count (as returned by getUserGroups query)
+export interface GroupWithMemberCount {
+  id: string
+  name: string
+  description: string | null
+  targetBudget: string | null
+  targetLocation: string | null
+  maxMembers: number | null
+  createdAt: Date
+  memberCount: number
+}

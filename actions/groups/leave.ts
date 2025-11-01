@@ -4,7 +4,12 @@ import { and, asc, eq, ne } from "drizzle-orm"
 import { db } from "@/db/client"
 import { buyingGroups, groupMembers } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
-import type { GroupMemberWithProfile } from "@/lib/types"
+
+// Type for the active members query result
+interface ActiveMember {
+  userId: string
+  joinedAt: Date
+}
 
 export async function leaveGroupAction(groupId: string) {
   const supabase = await createClient()
@@ -150,7 +155,7 @@ export async function getLeaveGroupInfo(groupId: string) {
     const isLastMember = totalMembers === 1
 
     // Find who would become the new owner (excluding current user)
-    const nextOwner = activeMembers.find((member: GroupMemberWithProfile) => member.userId !== user.id)
+    const nextOwner = activeMembers.find((member: ActiveMember) => member.userId !== user.id)
 
     return {
       isOwner,

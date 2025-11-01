@@ -19,7 +19,7 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
 
   // Dynamic imports to avoid build-time database connection
   const { getGroupById, getGroupMembers } = await import("@/lib/groups")
-  
+
   // Get group details
   const [group, members] = await Promise.all([getGroupById(groupId), getGroupMembers(groupId)])
 
@@ -40,7 +40,9 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
     }
   }
 
-  const activeMemberCount = members.filter((m: GroupMemberWithProfile) => m.status === "active").length
+  const activeMemberCount = members.filter(
+    (m: GroupMemberWithProfile) => m.status === "active",
+  ).length
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">

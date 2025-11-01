@@ -8,6 +8,7 @@ import {
   profiles,
   properties,
 } from "@/db/schema"
+import type { GroupWithMemberCount } from "@/lib/types"
 
 export async function getUserGroups(userId: string) {
   try {
@@ -60,8 +61,10 @@ export async function getUserGroups(userId: string) {
       .orderBy(desc(buyingGroups.createdAt))
 
     // Merge user membership data with group data
-    return result.map((group: any) => {
-      const membership = userMemberships.find((m: { groupId: string; role: string; status: string }) => m.groupId === group.id)
+    return result.map((group: GroupWithMemberCount) => {
+      const membership = userMemberships.find(
+        (m: { groupId: string; role: string; status: string }) => m.groupId === group.id,
+      )
       return {
         ...group,
         userRole: membership?.role || null,
