@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { createClient } from "@/lib/supabase/server"
 
 // Force dynamic rendering to prevent build-time prerendering
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
 const GroupPage = async () => {
   const supabase = await createClient()

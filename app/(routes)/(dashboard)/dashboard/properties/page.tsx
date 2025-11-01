@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header"
 import { getProperties } from "@/lib/properties"
 
 // Force dynamic rendering to prevent build-time prerendering
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
 async function PropertiesContent() {
   const properties = await getProperties()

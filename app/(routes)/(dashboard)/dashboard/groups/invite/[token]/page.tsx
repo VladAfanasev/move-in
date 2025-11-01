@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { createClient } from "@/lib/supabase/server"
 
 // Force dynamic rendering to prevent build-time prerendering
-export const dynamic = 'force-dynamic'
+export const dynamic = "force-dynamic"
 
 interface InvitePageProps {
   params: {
