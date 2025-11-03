@@ -105,12 +105,12 @@ export function LeaveGroupDialog({
             <AlertTriangle className="h-5 w-5 text-destructive" />
             {content.title}
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2">
-            <p>{content.description}</p>
-            {content.warning && (
-              <p className="font-medium text-muted-foreground">{content.warning}</p>
-            )}
+          <AlertDialogDescription>
+            {content.description}
           </AlertDialogDescription>
+          {content.warning && (
+            <div className="font-medium text-muted-foreground text-sm">{content.warning}</div>
+          )}
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel disabled={loading}>Annuleren</AlertDialogCancel>

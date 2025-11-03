@@ -1,7 +1,6 @@
 import { Building2, Euro, MapPin, Users } from "lucide-react"
 import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
-import { JoinGroupClient } from "@/app/features/join/components/join-group-client"
+import { notFound } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
@@ -32,13 +31,14 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // If user is authenticated, check if already member
-  if (user) {
-    const userMember = members.find((member: GroupMemberWithProfile) => member.userId === user.id)
-    if (userMember && userMember.status === "active") {
-      redirect(`/dashboard/groups/${groupId}`)
-    }
-  }
+  // If user is authenticated, check if already a member
+  // Temporarily disabled to test join flow
+  // if (user) {
+  //   const userMember = members.find((member: GroupMemberWithProfile) => member.userId === user.id)
+  //   if (userMember) {
+  //     redirect(`/dashboard/groups/${groupId}`)
+  //   }
+  // }
 
   const activeMemberCount = members.filter(
     (m: GroupMemberWithProfile) => m.status === "active",
@@ -46,7 +46,6 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
-      <JoinGroupClient groupId={groupId} groupName={group.name} />
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-primary">

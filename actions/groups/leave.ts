@@ -67,11 +67,7 @@ export async function leaveGroupAction(groupId: string) {
 
         // Remove the leaving user (will be cascade deleted)
         await db
-          .update(groupMembers)
-          .set({
-            status: "left",
-            leftAt: new Date(),
-          })
+          .delete(groupMembers)
           .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
 
         return {
@@ -94,11 +90,7 @@ export async function leaveGroupAction(groupId: string) {
 
     // Remove the leaving user from the group
     await db
-      .update(groupMembers)
-      .set({
-        status: "left",
-        leftAt: new Date(),
-      })
+      .delete(groupMembers)
       .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
 
     return {
