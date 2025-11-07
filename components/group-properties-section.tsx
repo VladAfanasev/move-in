@@ -101,19 +101,17 @@ export function GroupPropertiesSection({
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          {groupProperties.map((groupProperty, index) => (
-            <div key={groupProperty.property.id}>
-              <GroupPropertyCard
-                property={groupProperty.property}
-                notes={groupProperty.notes}
-                rating={groupProperty.rating}
-                addedAt={groupProperty.addedAt}
-                addedByName={groupProperty.addedByName}
-                onCalculateCosts={handleCalculateCosts}
-              />
-              {index < groupProperties.length - 1 && <Separator className="my-4" />}
-            </div>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {groupProperties.map(groupProperty => (
+            <GroupPropertyCard
+              key={groupProperty.property.id}
+              property={groupProperty.property}
+              notes={groupProperty.notes}
+              rating={groupProperty.rating}
+              addedAt={groupProperty.addedAt}
+              addedByName={groupProperty.addedByName}
+              onCalculateCosts={handleCalculateCosts}
+            />
           ))}
         </div>
       )}

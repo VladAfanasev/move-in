@@ -62,7 +62,7 @@ export function PropertiesList({
   }
 
   return (
-    <div className="space-y-4">
+    <>
       {properties.map((property, index) => (
         <div key={property.id}>
           <PropertyListItem
@@ -72,9 +72,9 @@ export function PropertiesList({
             onToggleFavorite={onToggleFavorite}
             isFavorite={favorites.includes(property.id)}
           />
-          {index < properties.length - 1 && <Separator />}
+          {index < properties.length - 1 && <Separator className="my-4" />}
         </div>
       ))}
-    </div>
+    </>
   )
 }
