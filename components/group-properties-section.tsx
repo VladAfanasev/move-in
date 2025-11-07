@@ -2,6 +2,7 @@
 
 import { Home, Plus } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { GroupPropertyCard } from "@/components/group-property-card"
 import { Button } from "@/components/ui/button"
 
@@ -52,21 +53,23 @@ interface Member {
 interface GroupPropertiesSectionProps {
   groupProperties: GroupProperty[]
   members: Member[]
+  groupId: string
   onCalculateCosts?: (propertyId: string) => void
 }
 
 export function GroupPropertiesSection({
   groupProperties,
+  groupId,
   onCalculateCosts,
 }: GroupPropertiesSectionProps) {
+  const router = useRouter()
+
   const handleCalculateCosts = (propertyId: string) => {
-    // For now, just call the callback or show a placeholder
     if (onCalculateCosts) {
       onCalculateCosts(propertyId)
     } else {
-      // Placeholder for future cost calculation feature
-      console.log("Cost calculation for property:", propertyId)
-      alert("Kostencalculatie functie komt binnenkort beschikbaar!")
+      // Navigate to cost calculation page
+      router.push(`/dashboard/groups/${groupId}/calculate/${propertyId}`)
     }
   }
 
