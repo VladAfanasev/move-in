@@ -44,10 +44,10 @@ export async function POST(
     .from(groupMembers)
     .where(
       and(
-        eq(groupMembers.groupId, groupId), 
+        eq(groupMembers.groupId, groupId),
         eq(groupMembers.userId, user.id),
-        eq(groupMembers.status, "active")
-      )
+        eq(groupMembers.status, "active"),
+      ),
     )
     .limit(1)
 
@@ -57,7 +57,6 @@ export async function POST(
   }
 
   try {
-
     // Check group capacity
     if (group[0].maxMembers) {
       const currentMembers = await db
@@ -100,18 +99,20 @@ export async function POST(
         status: "active",
       })
     }
-
   } catch (error) {
     console.error("Error joining group:", error)
     console.error("Error details:", error instanceof Error ? error.message : String(error))
     console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace")
-    return new Response(JSON.stringify({ 
-      error: "Failed to join group", 
-      details: error instanceof Error ? error.message : String(error) 
-    }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    })
+    return new Response(
+      JSON.stringify({
+        error: "Failed to join group",
+        details: error instanceof Error ? error.message : String(error),
+      }),
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      },
+    )
   }
 
   // Redirect to the group page after successful join

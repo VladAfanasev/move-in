@@ -4,7 +4,6 @@ import { Home, Plus } from "lucide-react"
 import Link from "next/link"
 import { GroupPropertyCard } from "@/components/group-property-card"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 
 interface GroupProperty {
   notes: string | null
@@ -101,7 +100,7 @@ export function GroupPropertiesSection({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {groupProperties.map(groupProperty => (
             <GroupPropertyCard
               key={groupProperty.property.id}
