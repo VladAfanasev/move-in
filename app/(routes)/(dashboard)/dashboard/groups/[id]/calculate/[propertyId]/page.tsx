@@ -1,10 +1,11 @@
 import { ArrowLeft, Calculator } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { CostCalculationForm } from "@/components/cost-calculation-form"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
 
 // Force dynamic rendering to prevent build-time prerendering
@@ -79,29 +80,64 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
 
       <div className="flex flex-1 flex-col space-y-6 p-6">
         {/* Property Header */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Calculator className="mr-2 h-5 w-5" />
-              {property.address}, {property.zipCode} {property.city}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-muted-foreground">Vraagprijs</span>
-                <p className="font-semibold">{formatCurrency(Number(property.price))}</p>
+        <Card className="overflow-hidden">
+          <div className="flex">
+            {/* Property Image - Full Height Left Side */}
+            <div className="relative min-h-[200px] w-80 bg-muted">
+              <Image
+                src={property.images?.[0] || "/placeholder-property.svg"}
+                alt={property.address}
+                fill
+                className="object-cover"
+                sizes="320px"
+              />
+            </div>
+
+            {/* Property Info - Right Side */}
+            <div className="flex-1 p-6">
+              {/* Title with Icon and Address */}
+              <div className="mb-4">
+                <h1 className="mb-2 flex items-center font-bold text-xl">
+                  <Calculator className="mr-2 h-5 w-5 text-primary" />
+                  {property.address}, {property.zipCode} {property.city}
+                </h1>
               </div>
-              <div>
-                <span className="text-muted-foreground">Oppervlakte</span>
-                <p className="font-semibold">{property.squareFeet} m²</p>
+
+              {/* Compact Property Stats */}
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="block font-medium text-primary">Vraagprijs</span>
+                  <span className="font-semibold text-lg">
+                    {formatCurrency(Number(property.price))}
+                  </span>
+                </div>
+                <div>
+                  <span className="block font-medium text-primary">Oppervlakte</span>
+                  <span className="font-semibold">{property.squareFeet} m²</span>
+                </div>
+                <div>
+                  <span className="block font-medium text-primary">Kamers</span>
+                  <span className="font-semibold">{property.bedrooms} kamers</span>
+                </div>
               </div>
-              <div>
-                <span className="text-muted-foreground">Kamers</span>
-                <p className="font-semibold">{property.bedrooms} kamers</p>
+
+              {/* Secondary Stats Row */}
+              <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <span className="block font-medium text-muted-foreground">Badkamers</span>
+                  <span className="font-semibold">{property.bathrooms}</span>
+                </div>
+                <div>
+                  <span className="block font-medium text-muted-foreground">Type</span>
+                  <span className="font-semibold capitalize">{property.propertyType}</span>
+                </div>
+                <div>
+                  <span className="block font-medium text-muted-foreground">Status</span>
+                  <span className="font-semibold capitalize">{property.status}</span>
+                </div>
               </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
 
         {/* Cost Calculation Form */}

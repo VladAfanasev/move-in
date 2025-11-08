@@ -1,7 +1,7 @@
 "use client"
 
 import type { User } from "@supabase/supabase-js"
-import { useId, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -93,6 +93,7 @@ export function CostCalculationForm({
 
   // Update investment amount when percentage changes
   const handlePercentageChange = (percentage: number) => {
+    setIsPercentageMode(true)
     const amount = Math.round((totalCosts * percentage) / 100)
     setUserProposal(prev => ({
       ...prev,
@@ -103,6 +104,7 @@ export function CostCalculationForm({
 
   // Update percentage when amount changes
   const handleAmountChange = (amount: number) => {
+    setIsPercentageMode(false)
     const percentage = Math.min(
       maxInvestmentPercentage,
       Math.max(minInvestmentPercentage, (amount / totalCosts) * 100),
@@ -114,10 +116,32 @@ export function CostCalculationForm({
     }))
   }
 
-  // Initialize investment amount based on percentage
-  if (userProposal.investmentAmount === 0) {
-    handlePercentageChange(userProposal.investmentPercentage)
-  }
+  // Keep track of whether we're in "percentage mode" (user is changing percentage)
+  // or "amount mode" (user is changing amount directly)
+  const [isPercentageMode, setIsPercentageMode] = useState(true)
+
+  // Calculate the investment amount based on current percentage and total costs
+  const calculatedAmount = Math.round((totalCosts * userProposal.investmentPercentage) / 100)
+
+  // Update investment amount when total costs change and we're in percentage mode
+  useEffect(() => {
+    if (isPercentageMode) {
+      setUserProposal(prev => ({
+        ...prev,
+        investmentAmount: calculatedAmount,
+      }))
+    }
+  }, [calculatedAmount, isPercentageMode])
+
+  // Initialize on first render
+  useEffect(() => {
+    if (userProposal.investmentAmount === 0) {
+      setUserProposal(prev => ({
+        ...prev,
+        investmentAmount: calculatedAmount,
+      }))
+    }
+  }, [calculatedAmount, userProposal.investmentAmount])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("nl-NL", {
