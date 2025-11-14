@@ -1,6 +1,7 @@
 "use client"
 
 import type { User } from "@supabase/supabase-js"
+import { useRouter } from "next/navigation"
 import { useEffect, useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,6 +9,9 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Textarea } from "@/components/ui/textarea"
+import { Badge } from "@/components/ui/badge"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertCircle, CheckCircle, Users, Settings, Play } from "lucide-react"
 
 interface Property {
   id: string
@@ -42,6 +46,14 @@ interface MemberProposal {
   status: "draft" | "submitted"
 }
 
+interface MemberIntention {
+  userId: string
+  userName: string
+  desiredPercentage?: number
+  maxPercentage?: number
+  status: "not_set" | "setting" | "intentions_set" | "ready_for_session"
+}
+
 interface CostCalculationFormProps {
   property: Property
   group: Group
@@ -55,6 +67,7 @@ export function CostCalculationForm({
   members: _members,
   currentUser,
 }: CostCalculationFormProps) {
+  const router = useRouter()
   const formId = useId()
   // Cost calculation state
   const [costs, setCosts] = useState({
@@ -76,6 +89,36 @@ export function CostCalculationForm({
 
   // Member proposals (mock data for now)
   const [memberProposals, _setMemberProposals] = useState<MemberProposal[]>([])
+
+  // Intention setting state
+  const [showIntentionModal, setShowIntentionModal] = useState(false)
+  const [tempDesiredPercentage, setTempDesiredPercentage] = useState(25)
+  const [tempMaxPercentage, setTempMaxPercentage] = useState(40)
+  
+  // Initialize member intentions based on group members
+  const [memberIntentions, setMemberIntentions] = useState<MemberIntention[]>(() => 
+    _members
+      .filter(m => m.status === "active")
+      .map((member, index) => ({
+        userId: member.userId,
+        userName: member.userId === currentUser.id ? "You" : 
+                member.fullName || member.email?.split("@")[0] || `Member ${index + 1}`,
+        status: index === 1 ? "intentions_set" : index === 2 ? "intentions_set" : "not_set" as const,
+        // Mock some members having set their intentions
+        ...(index === 1 && { desiredPercentage: 30, maxPercentage: 45 }),
+        ...(index === 2 && { desiredPercentage: 25, maxPercentage: 35 }),
+      }))
+  )
+
+  // Calculate if session can be started
+  const allIntentionsSet = memberIntentions.every(intention => intention.status === "intentions_set")
+  const canStartSession = allIntentionsSet && memberIntentions.length >= 2
+
+  // Calculate if 100% is achievable
+  const totalMaxPercentage = memberIntentions
+    .filter(intention => intention.maxPercentage)
+    .reduce((sum, intention) => sum + (intention.maxPercentage || 0), 0)
+  const canReach100 = totalMaxPercentage >= 100
 
   // Calculate derived values
   const transferTax = costs.purchasePrice * 0.02 // 2% transfer tax in Netherlands
@@ -163,8 +206,246 @@ export function CostCalculationForm({
     alert("Voorstel ingediend! Andere groepsleden kunnen nu jouw voorstel zien.")
   }
 
+  const handleOpenIntentionModal = () => {
+    const currentMember = memberIntentions.find(m => m.userId === currentUser.id)
+    if (currentMember?.desiredPercentage) {
+      setTempDesiredPercentage(currentMember.desiredPercentage)
+      setTempMaxPercentage(currentMember.maxPercentage || 40)
+    }
+    setShowIntentionModal(true)
+  }
+
+  const handleSubmitIntention = async () => {
+    // TODO: Submit intention to server
+    setMemberIntentions(prev => prev.map(intention => 
+      intention.userId === currentUser.id 
+        ? { 
+            ...intention, 
+            desiredPercentage: tempDesiredPercentage,
+            maxPercentage: tempMaxPercentage,
+            status: "intentions_set" 
+          }
+        : intention
+    ))
+    setShowIntentionModal(false)
+  }
+
+  const handleStartLiveSession = async () => {
+    // Mark everyone as ready for session
+    setMemberIntentions(prev => prev.map(intention => ({
+      ...intention,
+      status: "ready_for_session"
+    })))
+    
+    // TODO: Create live session and redirect
+    console.log("Starting live negotiation session...")
+    router.push(`/dashboard/groups/${group.id}/negotiate/${property.id}/live`)
+  }
+
+  const getMemberStatusText = (intention: MemberIntention) => {
+    switch (intention.status) {
+      case "not_set":
+        return intention.userId === currentUser.id ? "Set your intentions" : "Waiting for intentions"
+      case "setting":
+        return "Setting intentions..."
+      case "intentions_set":
+        return canStartSession ? "Ready to start session" : "Intentions set"
+      case "ready_for_session":
+        return "Ready!"
+      default:
+        return "Unknown status"
+    }
+  }
+
+  const getMemberStatusColor = (intention: MemberIntention) => {
+    switch (intention.status) {
+      case "not_set":
+        return intention.userId === currentUser.id ? "text-blue-600" : "text-orange-600"
+      case "setting":
+        return "text-yellow-600"
+      case "intentions_set":
+        return "text-green-600"
+      case "ready_for_session":
+        return "text-green-700"
+      default:
+        return "text-gray-600"
+    }
+  }
+
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-6">
+      {/* Group Members Status Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Users className="h-5 w-5" />
+            <span>Groep Status</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {memberIntentions.map((intention) => {
+              const isYou = intention.userId === currentUser.id
+              const canSetIntentions = isYou && intention.status === "not_set"
+              
+              return (
+                <div 
+                  key={intention.userId}
+                  className={`flex items-center justify-between rounded-lg p-4 ${
+                    isYou ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="flex items-center space-x-3">
+                    <div className={`h-3 w-3 rounded-full ${
+                      intention.status === "intentions_set" ? "bg-green-500" :
+                      intention.status === "not_set" ? "bg-gray-300" :
+                      "bg-yellow-500"
+                    }`} />
+                    <div>
+                      <div className="font-medium">{intention.userName}</div>
+                      {intention.desiredPercentage && intention.maxPercentage && (
+                        <div className="text-sm text-muted-foreground">
+                          Gewenst: {intention.desiredPercentage}% • Max: {intention.maxPercentage}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-3">
+                    <span className={`text-sm font-medium ${getMemberStatusColor(intention)}`}>
+                      {getMemberStatusText(intention)}
+                    </span>
+                    
+                    {canSetIntentions && (
+                      <Button 
+                        size="sm"
+                        onClick={handleOpenIntentionModal}
+                        className="flex items-center space-x-1"
+                      >
+                        <Settings className="h-4 w-4" />
+                        <span>Set</span>
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Session Status */}
+          {allIntentionsSet && (
+            <div className="mt-6 rounded-lg bg-green-50 border border-green-200 p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <div>
+                    <div className="font-semibold text-green-800">All intentions set!</div>
+                    <div className="text-sm text-green-700">
+                      {canReach100 ? 
+                        "100% is achievable with current maximum values" : 
+                        "⚠️ 100% might not be achievable - adjust in live session"
+                      }
+                    </div>
+                  </div>
+                </div>
+                <Button 
+                  onClick={handleStartLiveSession}
+                  className="bg-green-600 hover:bg-green-700 flex items-center space-x-2"
+                >
+                  <Play className="h-4 w-4" />
+                  <span>Start Live Session</span>
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {!allIntentionsSet && (
+            <div className="mt-6 rounded-lg bg-yellow-50 border border-yellow-200 p-4">
+              <div className="flex items-center space-x-2">
+                <AlertCircle className="h-5 w-5 text-yellow-600" />
+                <div className="text-sm text-yellow-800">
+                  Waiting for all members to set their intentions before starting the live session.
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Intention Setting Modal */}
+      <Dialog open={showIntentionModal} onOpenChange={setShowIntentionModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Set Your Investment Intentions</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            <div className="rounded-lg bg-muted/50 p-3 text-sm">
+              <p className="font-medium mb-1">Total property costs: {formatCurrency(totalCosts)}</p>
+              <p className="text-muted-foreground">
+                Set your desired percentage and maximum you're willing to invest
+              </p>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <Label>Desired percentage</Label>
+                <span className="font-semibold">{tempDesiredPercentage}%</span>
+              </div>
+              <Slider
+                value={[tempDesiredPercentage]}
+                onValueChange={value => setTempDesiredPercentage(value[0])}
+                min={5}
+                max={80}
+                step={1}
+                className="mb-2"
+              />
+              <div className="text-sm text-muted-foreground">
+                Amount: {formatCurrency((totalCosts * tempDesiredPercentage) / 100)}
+              </div>
+            </div>
+
+            <div>
+              <div className="mb-3 flex items-center justify-between">
+                <Label>Maximum percentage (if needed)</Label>
+                <span className="font-semibold">{tempMaxPercentage}%</span>
+              </div>
+              <Slider
+                value={[tempMaxPercentage]}
+                onValueChange={value => setTempMaxPercentage(value[0])}
+                min={tempDesiredPercentage}
+                max={90}
+                step={1}
+                className="mb-2"
+              />
+              <div className="text-sm text-muted-foreground">
+                Amount: {formatCurrency((totalCosts * tempMaxPercentage) / 100)}
+              </div>
+            </div>
+
+            <div className="rounded-lg bg-blue-50 p-3 text-sm text-blue-800">
+              <p className="font-medium">How this works:</p>
+              <ul className="mt-1 space-y-1 list-disc list-inside">
+                <li>Your <strong>desired percentage</strong> is what you prefer to invest</li>
+                <li>Your <strong>maximum percentage</strong> is the most you're willing to invest</li>
+                <li>In the live session, you can negotiate anywhere between these values</li>
+              </ul>
+            </div>
+
+            <div className="flex space-x-3">
+              <Button variant="outline" onClick={() => setShowIntentionModal(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={handleSubmitIntention} className="flex-1">
+                Set Intentions
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Individual Cost Calculation */}
+      <div className="grid gap-6 lg:grid-cols-2">
       {/* Cost Breakdown */}
       <Card>
         <CardHeader>
@@ -364,6 +645,7 @@ export function CostCalculationForm({
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   )
 }

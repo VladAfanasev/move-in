@@ -21,6 +21,19 @@ export const proposalStatus = pgEnum("proposal_status", [
   "expired",
 ])
 
+export const negotiationSessionStatus = pgEnum("negotiation_session_status", [
+  "intention_setting",
+  "active",
+  "completed",
+  "cancelled",
+])
+
+export const memberSessionStatus = pgEnum("member_session_status", [
+  "adjusting",
+  "confirmed",
+  "locked",
+])
+
 // Cost calculation sessions for specific properties in groups
 export const costCalculations = pgTable("cost_calculations", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -92,6 +105,57 @@ export const memberProposals = pgTable(
   },
   table => ({
     pk: primaryKey({ columns: [table.calculationId, table.userId] }),
+  }),
+)
+
+// Live negotiation sessions for real-time percentage agreement
+export const negotiationSessions = pgTable("negotiation_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  calculationId: uuid("calculation_id")
+    .references(() => costCalculations.id, { onDelete: "cascade" })
+    .notNull(),
+  createdBy: uuid("created_by")
+    .references(() => profiles.id)
+    .notNull(),
+
+  status: negotiationSessionStatus("status").notNull().default("intention_setting"),
+  totalPercentage: decimal("total_percentage", { precision: 5, scale: 2 }).default("0"),
+  
+  // Session locks when all members confirm and total = 100%
+  lockedAt: timestamp("locked_at"),
+  lockedBy: uuid("locked_by").references(() => profiles.id),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// Member participation in live negotiation sessions
+export const memberSessionParticipation = pgTable(
+  "member_session_participation", 
+  {
+    sessionId: uuid("session_id")
+      .references(() => negotiationSessions.id, { onDelete: "cascade" })
+      .notNull(),
+    userId: uuid("user_id")
+      .references(() => profiles.id, { onDelete: "cascade" })
+      .notNull(),
+
+    // Investment details
+    currentPercentage: decimal("current_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
+    intendedPercentage: decimal("intended_percentage", { precision: 5, scale: 2 }),
+    
+    // Session status
+    status: memberSessionStatus("status").notNull().default("adjusting"),
+    confirmedAt: timestamp("confirmed_at"),
+    lastActivity: timestamp("last_activity").defaultNow().notNull(),
+
+    isOnline: text("is_online").default("false"), // Using text for boolean
+
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  table => ({
+    pk: primaryKey({ columns: [table.sessionId, table.userId] }),
   }),
 )
 

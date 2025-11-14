@@ -1,120 +1,78 @@
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: move-in-app
+  name: move-in
   namespace: default
-  labels:
-    app: move-in
-    version: v1
 spec:
-  # Scale based on your needs
-  replicas: 2
-  
-  # Rolling update strategy for zero-downtime deployments
-  strategy:
-    type: RollingUpdate
-    rollingUpdate:
-      maxUnavailable: 1
-      maxSurge: 1
-  
+  replicas: 1
   selector:
     matchLabels:
       app: move-in
-  
   template:
     metadata:
       labels:
         app: move-in
-        version: v1
     spec:
-      # Security: Run containers as non-root user
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000
-        runAsGroup: 1000
-        fsGroup: 1000
-      
       containers:
       - name: move-in
-        # Use the image built by GitHub Actions
         image: ghcr.io/vladafanasev/move-in:main
-        imagePullPolicy: Always
-        
         ports:
         - containerPort: 3000
-          name: http
-          protocol: TCP
-        
-        # Environment variables from ConfigMap (non-sensitive)
         envFrom:
-        - configMapRef:
-            name: move-in-config
-        
-        # Environment variables from Secret (sensitive credentials)
-        env:
-        - name: NEXT_PUBLIC_SUPABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: move-in-secrets
-              key: NEXT_PUBLIC_SUPABASE_URL
-        - name: NEXT_PUBLIC_SUPABASE_ANON_KEY
-          valueFrom:
-            secretKeyRef:
-              name: move-in-secrets
-              key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: move-in-secrets
-              key: DATABASE_URL
-        
-        # Health checks
-        livenessProbe:
-          httpGet:
-            path: /
-            port: http
-          initialDelaySeconds: 30
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        
+        - secretRef:
+            name: move-in-supabase
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
         readinessProbe:
           httpGet:
             path: /
-            port: http
+            port: 3000
           initialDelaySeconds: 10
           periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
-        
-        # Resource limits to prevent resource exhaustion
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 512Mi
-          requests:
-            cpu: 250m
-            memory: 256Mi
-        
-        # Security: Container security context
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: false # Next.js needs to write to temp directories
-          capabilities:
-            drop:
-            - ALL
-      
-      # Restart policy
-      restartPolicy: Always
-      
-      # Optional: Node selector for ARM64 nodes (if using Raspberry Pi)
-      nodeSelector:
-        kubernetes.io/arch: arm64
-      
-      # Optional: Tolerations for ARM64 nodes
-      tolerations:
-      - key: "kubernetes.io/arch"
-        operator: "Equal"
-        value: "arm64"
-        effect: "NoSchedule"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      imagePullSecrets:
+      - name: ghcr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: move-in-service
+  namespace: default
+spec:
+  selector:
+    app: move-in
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: move-in-ingress
+  namespace: default
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: move-in.local  # For k3s local testing
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: move-in-service
+            port:
+              number: 80
