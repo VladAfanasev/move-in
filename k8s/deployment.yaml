@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: move-in
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: move-in
+  template:
+    metadata:
+      labels:
+        app: move-in
+    spec:
+      containers:
+      - name: move-in
+        image: ghcr.io/vladafanasev/move-in:main
+        ports:
+        - containerPort: 3000
+        envFrom:
+        - secretRef:
+            name: move-in-supabase
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      imagePullSecrets:
+      - name: ghcr-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: move-in-service
+  namespace: default
+spec:
+  selector:
+    app: move-in
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 3000
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: move-in-ingress
+  namespace: default
+  annotations:
+    ingress.kubernetes.io/ssl-redirect: "false"
+spec:
+  rules:
+  - host: move-in.local  # For k3s local testing
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: move-in-service
+            port:
+              number: 80

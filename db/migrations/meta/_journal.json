@@ -22,6 +22,20 @@
       "when": 1761152201490,
       "tag": "0002_giant_snowbird",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762520712533,
+      "tag": "0003_condemned_hemingway",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1762609059735,
+      "tag": "0004_yielding_quasimodo",
+      "breakpoints": true
     }
   ]
 }

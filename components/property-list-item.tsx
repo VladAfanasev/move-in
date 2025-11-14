@@ -85,7 +85,7 @@ export function PropertyListItem({
               </div>
             ) : null}
 
-            <div className="absolute top-3 right-3 flex gap-2">
+            <div className="absolute top-3 right-3 flex gap-2 opacity-80 hover:opacity-100">
               <AddPropertyToGroup propertyId={property.id} />
               <Button
                 variant="ghost"

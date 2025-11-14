@@ -2,9 +2,9 @@
 
 import { Home, Plus } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { GroupPropertyCard } from "@/components/group-property-card"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 
 interface GroupProperty {
   notes: string | null
@@ -53,21 +53,23 @@ interface Member {
 interface GroupPropertiesSectionProps {
   groupProperties: GroupProperty[]
   members: Member[]
+  groupId: string
   onCalculateCosts?: (propertyId: string) => void
 }
 
 export function GroupPropertiesSection({
   groupProperties,
+  groupId,
   onCalculateCosts,
 }: GroupPropertiesSectionProps) {
+  const router = useRouter()
+
   const handleCalculateCosts = (propertyId: string) => {
-    // For now, just call the callback or show a placeholder
     if (onCalculateCosts) {
       onCalculateCosts(propertyId)
     } else {
-      // Placeholder for future cost calculation feature
-      console.log("Cost calculation for property:", propertyId)
-      alert("Kostencalculatie functie komt binnenkort beschikbaar!")
+      // Navigate to cost calculation page
+      router.push(`/dashboard/groups/${groupId}/calculate/${propertyId}`)
     }
   }
 
@@ -101,19 +103,17 @@ export function GroupPropertiesSection({
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
-          {groupProperties.map((groupProperty, index) => (
-            <div key={groupProperty.property.id}>
-              <GroupPropertyCard
-                property={groupProperty.property}
-                notes={groupProperty.notes}
-                rating={groupProperty.rating}
-                addedAt={groupProperty.addedAt}
-                addedByName={groupProperty.addedByName}
-                onCalculateCosts={handleCalculateCosts}
-              />
-              {index < groupProperties.length - 1 && <Separator className="my-4" />}
-            </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {groupProperties.map(groupProperty => (
+            <GroupPropertyCard
+              key={groupProperty.property.id}
+              property={groupProperty.property}
+              notes={groupProperty.notes}
+              rating={groupProperty.rating}
+              addedAt={groupProperty.addedAt}
+              addedByName={groupProperty.addedByName}
+              onCalculateCosts={handleCalculateCosts}
+            />
           ))}
         </div>
       )}

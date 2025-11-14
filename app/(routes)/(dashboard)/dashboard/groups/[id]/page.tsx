@@ -146,7 +146,11 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
           </div>
         </div>
 
-        <GroupPropertiesSection groupProperties={groupProperties} members={members} />
+        <GroupPropertiesSection
+          groupProperties={groupProperties}
+          members={members}
+          groupId={group.id}
+        />
       </div>
     </div>
   )
