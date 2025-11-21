@@ -36,6 +36,13 @@
       "when": 1762609059735,
       "tag": "0004_yielding_quasimodo",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1732201500000,
+      "tag": "0005_add_cost_calculations",
+      "breakpoints": true
     }
   ]
 }

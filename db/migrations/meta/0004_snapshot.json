@@ -118,12 +118,8 @@
           "name": "calculation_comments_calculation_id_cost_calculations_id_fk",
           "tableFrom": "calculation_comments",
           "tableTo": "cost_calculations",
-          "columnsFrom": [
-            "calculation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["calculation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -131,12 +127,8 @@
           "name": "calculation_comments_user_id_profiles_id_fk",
           "tableFrom": "calculation_comments",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -300,12 +292,8 @@
           "name": "cost_calculations_group_id_buying_groups_id_fk",
           "tableFrom": "cost_calculations",
           "tableTo": "buying_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -313,12 +301,8 @@
           "name": "cost_calculations_property_id_properties_id_fk",
           "tableFrom": "cost_calculations",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -326,12 +310,8 @@
           "name": "cost_calculations_created_by_profiles_id_fk",
           "tableFrom": "cost_calculations",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -423,12 +403,8 @@
           "name": "member_proposals_calculation_id_cost_calculations_id_fk",
           "tableFrom": "member_proposals",
           "tableTo": "cost_calculations",
-          "columnsFrom": [
-            "calculation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["calculation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -436,12 +412,8 @@
           "name": "member_proposals_user_id_profiles_id_fk",
           "tableFrom": "member_proposals",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -449,10 +421,7 @@
       "compositePrimaryKeys": {
         "member_proposals_calculation_id_user_id_pk": {
           "name": "member_proposals_calculation_id_user_id_pk",
-          "columns": [
-            "calculation_id",
-            "user_id"
-          ]
+          "columns": ["calculation_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -538,12 +507,8 @@
           "name": "member_session_participation_session_id_negotiation_sessions_id_fk",
           "tableFrom": "member_session_participation",
           "tableTo": "negotiation_sessions",
-          "columnsFrom": [
-            "session_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["session_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -551,12 +516,8 @@
           "name": "member_session_participation_user_id_profiles_id_fk",
           "tableFrom": "member_session_participation",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -564,10 +525,7 @@
       "compositePrimaryKeys": {
         "member_session_participation_session_id_user_id_pk": {
           "name": "member_session_participation_session_id_user_id_pk",
-          "columns": [
-            "session_id",
-            "user_id"
-          ]
+          "columns": ["session_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -646,12 +604,8 @@
           "name": "negotiation_sessions_calculation_id_cost_calculations_id_fk",
           "tableFrom": "negotiation_sessions",
           "tableTo": "cost_calculations",
-          "columnsFrom": [
-            "calculation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["calculation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -659,12 +613,8 @@
           "name": "negotiation_sessions_created_by_profiles_id_fk",
           "tableFrom": "negotiation_sessions",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -672,12 +622,8 @@
           "name": "negotiation_sessions_locked_by_profiles_id_fk",
           "tableFrom": "negotiation_sessions",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "locked_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["locked_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -784,12 +730,8 @@
           "name": "buying_groups_created_by_profiles_id_fk",
           "tableFrom": "buying_groups",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -890,12 +832,8 @@
           "name": "group_invitations_group_id_buying_groups_id_fk",
           "tableFrom": "group_invitations",
           "tableTo": "buying_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -903,12 +841,8 @@
           "name": "group_invitations_invited_by_profiles_id_fk",
           "tableFrom": "group_invitations",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "invited_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["invited_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
@@ -916,12 +850,8 @@
           "name": "group_invitations_accepted_by_profiles_id_fk",
           "tableFrom": "group_invitations",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "accepted_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["accepted_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -931,9 +861,7 @@
         "group_invitations_token_unique": {
           "name": "group_invitations_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -1010,12 +938,8 @@
           "name": "group_members_group_id_buying_groups_id_fk",
           "tableFrom": "group_members",
           "tableTo": "buying_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1023,12 +947,8 @@
           "name": "group_members_user_id_profiles_id_fk",
           "tableFrom": "group_members",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -1036,10 +956,7 @@
       "compositePrimaryKeys": {
         "group_members_group_id_user_id_pk": {
           "name": "group_members_group_id_user_id_pk",
-          "columns": [
-            "group_id",
-            "user_id"
-          ]
+          "columns": ["group_id", "user_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1102,12 +1019,8 @@
           "name": "group_properties_group_id_buying_groups_id_fk",
           "tableFrom": "group_properties",
           "tableTo": "buying_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1115,12 +1028,8 @@
           "name": "group_properties_property_id_properties_id_fk",
           "tableFrom": "group_properties",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -1128,12 +1037,8 @@
           "name": "group_properties_added_by_profiles_id_fk",
           "tableFrom": "group_properties",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "added_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["added_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1141,10 +1046,7 @@
       "compositePrimaryKeys": {
         "group_properties_group_id_property_id_pk": {
           "name": "group_properties_group_id_property_id_pk",
-          "columns": [
-            "group_id",
-            "property_id"
-          ]
+          "columns": ["group_id", "property_id"]
         }
       },
       "uniqueConstraints": {},
@@ -1296,12 +1198,8 @@
           "name": "properties_listed_by_profiles_id_fk",
           "tableFrom": "properties",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "listed_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["listed_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1317,91 +1215,47 @@
     "public.member_session_status": {
       "name": "member_session_status",
       "schema": "public",
-      "values": [
-        "adjusting",
-        "confirmed",
-        "locked"
-      ]
+      "values": ["adjusting", "confirmed", "locked"]
     },
     "public.negotiation_session_status": {
       "name": "negotiation_session_status",
       "schema": "public",
-      "values": [
-        "intention_setting",
-        "active",
-        "completed",
-        "cancelled"
-      ]
+      "values": ["intention_setting", "active", "completed", "cancelled"]
     },
     "public.proposal_status": {
       "name": "proposal_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "submitted",
-        "accepted",
-        "rejected",
-        "expired"
-      ]
+      "values": ["draft", "submitted", "accepted", "rejected", "expired"]
     },
     "public.group_status": {
       "name": "group_status",
       "schema": "public",
-      "values": [
-        "forming",
-        "active",
-        "viewing",
-        "offer_made",
-        "closed",
-        "disbanded"
-      ]
+      "values": ["forming", "active", "viewing", "offer_made", "closed", "disbanded"]
     },
     "public.invitation_status": {
       "name": "invitation_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "accepted",
-        "expired",
-        "cancelled"
-      ]
+      "values": ["pending", "accepted", "expired", "cancelled"]
     },
     "public.member_role": {
       "name": "member_role",
       "schema": "public",
-      "values": [
-        "owner",
-        "admin",
-        "member"
-      ]
+      "values": ["owner", "admin", "member"]
     },
     "public.member_status": {
       "name": "member_status",
       "schema": "public",
-      "values": [
-        "pending",
-        "active",
-        "left",
-        "removed"
-      ]
+      "values": ["pending", "active", "left", "removed"]
     },
     "public.property_status": {
       "name": "property_status",
       "schema": "public",
-      "values": [
-        "available",
-        "in_option",
-        "sold",
-        "archived"
-      ]
+      "values": ["available", "in_option", "sold", "archived"]
     },
     "public.property_type": {
       "name": "property_type",
       "schema": "public",
-      "values": [
-        "house",
-        "apartment"
-      ]
+      "values": ["house", "apartment"]
     }
   },
   "schemas": {},

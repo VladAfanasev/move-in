@@ -1,7 +1,7 @@
 "use client"
 
-import * as React from "react"
 import { X } from "lucide-react"
+import type * as React from "react"
 
 interface DialogProps {
   open: boolean
@@ -28,38 +28,25 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50" 
-        onClick={() => onOpenChange(false)}
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
       {/* Content */}
-      <div className="relative z-10">
-        {children}
-      </div>
+      <div className="relative z-10">{children}</div>
     </div>
   )
 }
 
 export function DialogContent({ children, className = "" }: DialogContentProps) {
   return (
-    <div className={`relative rounded-lg bg-white p-6 shadow-lg max-w-md w-full mx-4 ${className}`}>
+    <div className={`relative mx-4 w-full max-w-md rounded-lg bg-white p-6 shadow-lg ${className}`}>
       {children}
     </div>
   )
 }
 
 export function DialogHeader({ children }: DialogHeaderProps) {
-  return (
-    <div className="mb-4">
-      {children}
-    </div>
-  )
+  return <div className="mb-4">{children}</div>
 }
 
 export function DialogTitle({ children }: DialogTitleProps) {
-  return (
-    <h2 className="text-lg font-semibold">
-      {children}
-    </h2>
-  )
+  return <h2 className="font-semibold text-lg">{children}</h2>
 }

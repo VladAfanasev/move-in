@@ -98,7 +98,7 @@ export default async function LiveNegotiationPage({ params }: LiveNegotiationPag
               <h1 className="mb-2 font-bold text-xl">
                 🏠 {property.address}, {property.zipCode} {property.city}
               </h1>
-              
+
               <div className="flex items-center space-x-6 text-sm">
                 <div>
                   <span className="block font-medium text-primary">Vraagprijs</span>
@@ -107,7 +107,8 @@ export default async function LiveNegotiationPage({ params }: LiveNegotiationPag
                   </span>
                 </div>
                 <div className="text-muted-foreground">
-                  Live Session • Started: {new Date().toLocaleTimeString("nl-NL", { hour: '2-digit', minute: '2-digit' })}
+                  Live Session • Started:{" "}
+                  {new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}
                 </div>
               </div>
             </div>
