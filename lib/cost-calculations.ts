@@ -21,6 +21,7 @@ export interface NegotiationSession {
   calculationId: string
   status: "intention_setting" | "active" | "completed" | "cancelled"
   totalPercentage: number
+  createdAt: string
   participants: {
     userId: string
     currentPercentage: number
@@ -210,6 +211,7 @@ export async function getNegotiationSession(sessionId: string): Promise<Negotiat
     calculationId: session[0].calculationId,
     status: session[0].status as "intention_setting" | "active" | "completed" | "cancelled",
     totalPercentage: Number(session[0].totalPercentage),
+    createdAt: session[0].createdAt.toISOString(),
     participants: participants.map((p: any) => ({
       userId: p.userId,
       currentPercentage: Number(p.currentPercentage),

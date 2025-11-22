@@ -98,6 +98,7 @@ export function CostCalculationForm({
   const [loading, setLoading] = useState(true)
   const [submittingIntention, setSubmittingIntention] = useState(false)
   const [startingSession, setStartingSession] = useState(false)
+  const [existingSessionId, setExistingSessionId] = useState<string | null>(null)
 
   // Calculate if session can be started
   const allIntentionsSet = memberIntentions.every(
@@ -205,6 +206,11 @@ export function CostCalculationForm({
       if (response.ok) {
         const data = await response.json()
         setCalculationId(data.calculationId)
+
+        // Check if session already exists
+        if (data.sessionId) {
+          setExistingSessionId(data.sessionId)
+        }
       } else {
         // If session creation fails, still get/create calculation for intentions
         const calcResponse = await fetch("/api/intentions", {
@@ -363,7 +369,7 @@ export function CostCalculationForm({
       case "setting":
         return "Setting intentions..."
       case "intentions_set":
-        return canStartSession ? "Ready to start session" : "Intentions set"
+        return "Intentions set"
       case "ready_for_session":
         return "Ready!"
       default:
@@ -625,7 +631,13 @@ export function CostCalculationForm({
                         disabled={startingSession}
                       >
                         <Play className="h-4 w-4" />
-                        <span>{startingSession ? "Starting..." : "Start Live Session"}</span>
+                        <span>
+                          {startingSession
+                            ? "Starting..."
+                            : existingSessionId
+                              ? "Go to session"
+                              : "Start Live Session"}
+                        </span>
                       </Button>
                     </div>
                   </div>

@@ -100,6 +100,13 @@ export function notifyUserJoined(sessionId: string, userId: string) {
     },
     userId,
   ) // Exclude the user who just joined
+
+  // Broadcast updated online users list to all connections
+  const onlineUsers = getOnlineUsers(sessionId)
+  broadcastToSession(sessionId, {
+    type: "online-users",
+    users: onlineUsers,
+  })
 }
 
 export function notifyUserLeft(sessionId: string, userId: string) {
@@ -111,6 +118,13 @@ export function notifyUserLeft(sessionId: string, userId: string) {
     },
     userId,
   ) // Exclude the user who left
+
+  // Broadcast updated online users list to all connections
+  const onlineUsers = getOnlineUsers(sessionId)
+  broadcastToSession(sessionId, {
+    type: "online-users",
+    users: onlineUsers,
+  })
 }
 
 export function getConnectionCount(sessionId?: string): number {
