@@ -61,12 +61,8 @@
           "name": "calculation_comments_calculation_id_cost_calculations_id_fk",
           "tableFrom": "calculation_comments",
           "tableTo": "cost_calculations",
-          "columnsFrom": [
-            "calculation_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["calculation_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -74,12 +70,8 @@
           "name": "calculation_comments_user_id_profiles_id_fk",
           "tableFrom": "calculation_comments",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["user_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         }
@@ -240,12 +232,8 @@
           "name": "cost_calculations_group_id_buying_groups_id_fk",
           "tableFrom": "cost_calculations",
           "tableTo": "buying_groups",
-          "columnsFrom": [
-            "group_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["group_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -253,12 +241,8 @@
           "name": "cost_calculations_property_id_properties_id_fk",
           "tableFrom": "cost_calculations",
           "tableTo": "properties",
-          "columnsFrom": [
-            "property_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["property_id"],
+          "columnsTo": ["id"],
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
@@ -266,12 +250,8 @@
           "name": "cost_calculations_created_by_profiles_id_fk",
           "tableFrom": "cost_calculations",
           "tableTo": "profiles",
-          "columnsFrom": [
-            "created_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["created_by"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -284,32 +264,17 @@
     "public.member_session_status": {
       "name": "member_session_status",
       "schema": "public",
-      "values": [
-        "adjusting",
-        "confirmed",
-        "locked"
-      ]
+      "values": ["adjusting", "confirmed", "locked"]
     },
     "public.negotiation_session_status": {
       "name": "negotiation_session_status",
       "schema": "public",
-      "values": [
-        "intention_setting",
-        "active",
-        "completed",
-        "cancelled"
-      ]
+      "values": ["intention_setting", "active", "completed", "cancelled"]
     },
     "public.proposal_status": {
       "name": "proposal_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "submitted",
-        "accepted",
-        "rejected",
-        "expired"
-      ]
+      "values": ["draft", "submitted", "accepted", "rejected", "expired"]
     }
   },
   "schemas": {},

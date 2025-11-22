@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getNegotiationSession, updateMemberSessionStatus } from "@/lib/cost-calculations"
+import { broadcastToSession } from "@/lib/sse-connections"
 import { createClient } from "@/lib/supabase/server"
 
 export async function GET(
@@ -48,11 +49,43 @@ export async function PATCH(
     const body = await request.json()
     const { currentPercentage, status, isOnline } = body
 
+    console.log(`Session ${sessionId} update from ${user.id}:`, {
+      currentPercentage,
+      status,
+      isOnline,
+    })
+
     await updateMemberSessionStatus(sessionId, user.id, {
       currentPercentage,
       status,
       isOnline,
     })
+
+    // Broadcast the change to other users
+    if (currentPercentage !== undefined) {
+      console.log(`Broadcasting percentage update: ${currentPercentage} from ${user.id}`)
+      broadcastToSession(
+        sessionId,
+        {
+          type: "percentage-update",
+          userId: user.id,
+          percentage: currentPercentage,
+          status: status || "adjusting",
+        },
+        user.id,
+      )
+    } else if (status) {
+      console.log(`Broadcasting status change: ${status} from ${user.id}`)
+      broadcastToSession(
+        sessionId,
+        {
+          type: "status-change",
+          userId: user.id,
+          status,
+        },
+        user.id,
+      )
+    }
 
     // Get updated session
     const updatedSession = await getNegotiationSession(sessionId)

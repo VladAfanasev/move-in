@@ -1,14 +1,15 @@
 "use client"
 
 import type { User } from "@supabase/supabase-js"
-import { AlertCircle, CheckCircle, Clock, User as UserIcon } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { AlertCircle, CheckCircle, Clock, Target, Scale, User as UserIcon } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Slider } from "@/components/ui/slider"
-import { useMockWebSocket } from "@/hooks/use-mock-websocket"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { type RealTimeMessage, useRealTimeSession } from "@/hooks/use-real-time-session"
 
 interface Property {
   id: string
@@ -38,6 +39,7 @@ interface SessionMember {
   status: "adjusting" | "confirmed" | "locked"
   isOnline: boolean
   lastActivity?: number
+  activity?: "adjusting" | "idle" | "typing"
 }
 
 interface LiveNegotiationSessionProps {
@@ -58,6 +60,9 @@ export function LiveNegotiationSession({
   const [sessionMembers, setSessionMembers] = useState<SessionMember[]>([])
   const [loading, setLoading] = useState(true)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const lastSentPercentageRef = useRef<number | null>(null)
 
   const [yourPercentage, setYourPercentage] = useState(25)
   const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
@@ -65,8 +70,79 @@ export function LiveNegotiationSession({
   const [showCountdown, setShowCountdown] = useState(false)
   const [countdown, setCountdown] = useState(5)
 
-  // WebSocket connection
-  const websocket = useMockWebSocket(`${group.id}-${property.id}`, currentUser.id)
+  // Handle real-time messages
+  const handleRealTimeMessage = useCallback(
+    (message: RealTimeMessage) => {
+      switch (message.type) {
+        case "percentage-update":
+          if (message.userId !== currentUser.id && message.userId) {
+            console.log("Received percentage update:", message)
+            setSessionMembers(prev =>
+              prev.map(member =>
+                member.userId === message.userId
+                  ? {
+                      ...member,
+                      percentage: message.percentage || 0,
+                      status: message.status || "adjusting",
+                      lastActivity: Date.now(),
+                    }
+                  : member,
+              ),
+            )
+          }
+          break
+
+        case "status-change":
+          if (message.userId !== currentUser.id && message.userId) {
+            setSessionMembers(prev =>
+              prev.map(member =>
+                member.userId === message.userId
+                  ? { ...member, status: message.status || "adjusting" }
+                  : member,
+              ),
+            )
+          }
+          break
+
+        case "user-joined":
+          console.log(`${message.userId} joined the session`)
+          // Optionally refresh session data to include new user
+          break
+
+        case "user-left":
+          console.log(`${message.userId} left the session`)
+          setSessionMembers(prev =>
+            prev.map(member =>
+              member.userId === message.userId ? { ...member, isOnline: false } : member,
+            ),
+          )
+          break
+
+        case "user-activity":
+          // Handle activity status (adjusting, idle, etc.)
+          setSessionMembers(prev =>
+            prev.map(member =>
+              member.userId === message.userId
+                ? {
+                    ...member,
+                    lastActivity: Date.now(),
+                    activity: message.activity,
+                  }
+                : member,
+            ),
+          )
+          break
+      }
+    },
+    [currentUser.id],
+  )
+
+  // Real-time connection (only when sessionId is available)
+  const realTime = useRealTimeSession({
+    sessionId: sessionId || "no-session",
+    userId: currentUser.id,
+    onMessage: handleRealTimeMessage,
+  })
 
   // Calculate totals
   const totalPercentage = sessionMembers.reduce((sum, member) => sum + member.percentage, 0)
@@ -75,15 +151,6 @@ export function LiveNegotiationSession({
   const allConfirmed = sessionMembers.every(member =>
     member.userId === currentUser.id ? yourStatus === "confirmed" : member.status === "confirmed",
   )
-
-  // Progress bar color logic
-  const getProgressColor = () => {
-    if (totalPercentage < 95) return "bg-orange-500"
-    if (totalPercentage >= 95 && totalPercentage < 100) return "bg-yellow-500"
-    if (totalPercentage === 100) return "bg-green-500"
-    if (totalPercentage > 100) return "bg-red-500"
-    return "bg-orange-500"
-  }
 
   const getProgressMessage = () => {
     if (totalPercentage < 95) {
@@ -111,61 +178,60 @@ export function LiveNegotiationSession({
     Math.abs(totalPercentage - 100) < 0.01 &&
     yourStatus === "adjusting"
 
-  // WebSocket message handler
-  const handleWebSocketMessage = useCallback(
-    (message: any) => {
-      switch (message.type) {
-        case "percentage-update":
-          if (message.userId !== currentUser.id) {
-            setSessionMembers(prev =>
-              prev.map(member =>
-                member.userId === message.userId
-                  ? {
-                      ...member,
-                      percentage: message.percentage,
-                      status: message.status,
-                      lastActivity: Date.now(),
-                    }
-                  : member,
-              ),
-            )
-          }
-          break
+  // Update online status for session members
+  useEffect(() => {
+    if (realTime.isConnected && realTime.onlineUsers.length > 0) {
+      setSessionMembers(prev =>
+        prev.map(member => ({
+          ...member,
+          isOnline: realTime.onlineUsers.includes(member.userId),
+        })),
+      )
+    }
+  }, [realTime.isConnected, realTime.onlineUsers])
 
-        case "status-change":
-          if (message.userId !== currentUser.id) {
-            setSessionMembers(prev =>
-              prev.map(member =>
-                member.userId === message.userId ? { ...member, status: message.status } : member,
-              ),
-            )
-          }
-          break
+  // Debounced function to update percentage in database and broadcast to others
+  const debouncedUpdatePercentage = useCallback(
+    async (percentage: number) => {
+      if (!sessionId) return
 
-        case "member-join":
-          // Handle new member joining
-          console.log(`${message.name} joined the session`)
-          break
+      // Don't send if it's the same as the last sent value
+      if (lastSentPercentageRef.current === percentage) return
 
-        case "session-locked":
-          setSessionLocked(true)
-          setShowCountdown(false)
-          break
+      try {
+        setIsUpdating(true)
+        console.log("Sending debounced percentage update:", percentage)
+
+        const response = await fetch(`/api/sessions/${sessionId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            currentPercentage: percentage,
+            status: "adjusting",
+            isOnline: true,
+          }),
+        })
+
+        if (!response.ok) {
+          console.error("Failed to update percentage:", response.statusText)
+        } else {
+          lastSentPercentageRef.current = percentage
+          console.log(`✅ Successfully broadcast ${percentage}% to other users`)
+        }
+      } catch (error) {
+        console.error("Error updating percentage:", error)
+      } finally {
+        setIsUpdating(false)
       }
     },
-    [currentUser.id],
+    [sessionId],
   )
 
-  // Set up WebSocket event listener
-  useEffect(() => {
-    websocket.on(handleWebSocketMessage)
-    return () => websocket.off(handleWebSocketMessage)
-  }, [websocket, handleWebSocketMessage])
+  // Handle percentage change with debouncing
+  const handlePercentageChange = (newPercentage: number) => {
+    if (yourStatus === "confirmed" || sessionLocked) return
 
-  // Handle percentage change
-  const handlePercentageChange = async (newPercentage: number) => {
-    if (yourStatus === "confirmed" || sessionLocked || !sessionId) return
-
+    // Update local state immediately for smooth UI
     setYourPercentage(newPercentage)
 
     // Update session members locally first for immediate feedback
@@ -180,29 +246,29 @@ export function LiveNegotiationSession({
     // Reset status to adjusting
     setYourStatus("adjusting")
 
-    try {
-      // Update in database
-      await fetch(`/api/sessions/${sessionId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPercentage: newPercentage,
-          status: "adjusting",
-          isOnline: true,
-        }),
-      })
-
-      // Broadcast via WebSocket
-      websocket.send({
-        type: "percentage-update",
-        userId: currentUser.id,
-        percentage: newPercentage,
-        status: "adjusting",
-      })
-    } catch (error) {
-      console.error("Error updating percentage:", error)
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
     }
+
+    // Send activity indicator to show user is actively adjusting
+    realTime.sendActivity("adjusting")
+
+    // Set new timeout for debounced update
+    debounceTimeoutRef.current = setTimeout(() => {
+      debouncedUpdatePercentage(newPercentage)
+      realTime.sendActivity("idle") // Reset activity when done
+    }, 1000) // 1 second debounce instead of 3 seconds for better UX
   }
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   // Handle confirm
   const handleConfirm = async () => {
@@ -228,12 +294,7 @@ export function LiveNegotiationSession({
         }),
       })
 
-      // Broadcast via WebSocket
-      websocket.send({
-        type: "status-change",
-        userId: currentUser.id,
-        status: "confirmed",
-      })
+      // Broadcast is handled by the API route automatically
     } catch (error) {
       console.error("Error confirming percentage:", error)
     }
@@ -263,12 +324,7 @@ export function LiveNegotiationSession({
         }),
       })
 
-      // Broadcast via WebSocket
-      websocket.send({
-        type: "status-change",
-        userId: currentUser.id,
-        status: "adjusting",
-      })
+      // Broadcast is handled by the API route automatically
     } catch (error) {
       console.error("Error changing mind:", error)
     }
@@ -436,15 +492,22 @@ export function LiveNegotiationSession({
   }
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider delayDuration={50}>
+      <div className="space-y-6">
       {/* Live Session Header */}
       <Card className="border-green-200 bg-green-50">
         <CardContent className="pt-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="h-3 w-3 animate-pulse rounded-full bg-red-500" />
+              <div
+                className={`h-3 w-3 rounded-full ${
+                  realTime.isConnected ? "animate-pulse bg-green-500" : "bg-red-500"
+                }`}
+              />
               <div>
-                <h2 className="font-semibold text-green-800">Live Negotiation Session</h2>
+                <h2 className="font-semibold text-green-800">
+                  Live Negotiation Session {!realTime.isConnected && "(Disconnected)"}
+                </h2>
                 <p className="text-green-700 text-sm">
                   Everyone can now adjust their investment percentage. Session locks when all
                   confirm and total = 100%
@@ -453,7 +516,16 @@ export function LiveNegotiationSession({
             </div>
             <div className="text-right">
               <div className="text-green-600 text-sm">
-                {sessionMembers.filter(m => m.isOnline).length} members online
+                {realTime.onlineUsers.length} members online
+                {realTime.reconnectAttempts > 0 && (
+                  <span className="text-orange-600"> (reconnecting...)</span>
+                )}
+                {process.env.NODE_ENV === "development" && (
+                  <div className="text-gray-500 text-xs">
+                    Session: {sessionId || "loading..."} | Connected:{" "}
+                    {realTime.isConnected ? "✅" : "❌"}
+                  </div>
+                )}
               </div>
               <div className="text-green-600 text-xs">
                 Started:{" "}
@@ -473,7 +545,13 @@ export function LiveNegotiationSession({
               <div className="mb-4">
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-semibold">Total Progress</span>
-                  <span className="font-semibold text-lg">{totalPercentage.toFixed(1)}/100%</span>
+                  <span className={`font-semibold text-lg ${
+                    totalPercentage === 100 ? "text-green-600" : ""
+                  }`}>
+                    {totalPercentage % 1 === 0
+                      ? `${totalPercentage.toFixed(0)}%`
+                      : `${totalPercentage.toFixed(1)}%`}
+                  </span>
                 </div>
                 <Progress value={Math.min(100, totalPercentage)} className="h-4" />
                 <div
@@ -509,7 +587,61 @@ export function LiveNegotiationSession({
           {/* Your Investment */}
           <Card>
             <CardHeader>
-              <CardTitle>Your Investment</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Your Investment</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Calculate what percentage is needed to reach exactly 100%
+                          const otherMembersTotal = sessionMembers
+                            .filter(member => member.userId !== currentUser.id)
+                            .reduce((sum, member) => sum + member.percentage, 0)
+
+                          const neededPercentage = 100 - otherMembersTotal
+                          const constrainedPercentage = Math.max(10, Math.min(90, neededPercentage))
+
+                          if (yourStatus === "confirmed" || sessionLocked) return
+                          handlePercentageChange(constrainedPercentage)
+                        }}
+                        disabled={yourStatus === "confirmed" || sessionLocked}
+                      >
+                        <Target className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Set percentage to reach exactly 100%</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Calculate equal split among all members
+                          const totalMembers = sessionMembers.length
+                          const equalPercentage = 100 / totalMembers
+                          const constrainedPercentage = Math.max(10, Math.min(90, equalPercentage))
+
+                          if (yourStatus === "confirmed" || sessionLocked) return
+                          handlePercentageChange(constrainedPercentage)
+                        }}
+                        disabled={yourStatus === "confirmed" || sessionLocked}
+                      >
+                        <Scale className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Set equal split among all members</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="space-y-6">
               {yourStatus === "adjusting" ? (
@@ -517,7 +649,12 @@ export function LiveNegotiationSession({
                   <div>
                     <div className="mb-3 flex items-center justify-between">
                       <span className="font-medium">Percentage</span>
-                      <span className="font-semibold text-lg">{yourPercentage.toFixed(1)}%</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-lg">{yourPercentage.toFixed(1)}%</span>
+                        {isUpdating && (
+                          <span className="animate-pulse text-orange-500 text-xs">Sending...</span>
+                        )}
+                      </div>
                     </div>
                     <Slider
                       value={[yourPercentage]}
@@ -612,8 +749,20 @@ export function LiveNegotiationSession({
                           >
                             {displayStatus === "confirmed" ? "✅ Confirmed" : "⏳ Adjusting"}
                           </Badge>
-                          {member.lastActivity && member.lastActivity > Date.now() - 10000 && (
-                            <span className="text-green-600 text-xs">• Just updated</span>
+                          {member.activity === "adjusting" && (
+                            <span className="animate-pulse text-blue-600 text-xs">
+                              🎛️ Adjusting now...
+                            </span>
+                          )}
+                          {member.lastActivity &&
+                            member.lastActivity > Date.now() - 10000 &&
+                            member.activity !== "adjusting" && (
+                              <span className="text-green-600 text-xs">• Just updated</span>
+                            )}
+                          {isUpdating && isYou && (
+                            <span className="animate-pulse text-orange-600 text-xs">
+                              📡 Sending...
+                            </span>
                           )}
                         </div>
                       </div>
@@ -634,7 +783,8 @@ export function LiveNegotiationSession({
             </CardContent>
           </Card>
         </div>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   )
 }
