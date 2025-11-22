@@ -1,16 +1,27 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { useRealTimeSession } from "@/hooks/use-real-time-session"
 
 export default function TestRealTimePage() {
+  const sessionIdInput = useId()
+  const userIdInput = useId()
   const [sessionId, setSessionId] = useState("test-session-123")
   const [userId, setUserId] = useState(`user-${Math.random().toString(36).substr(2, 9)}`)
-  const [messages, setMessages] = useState<any[]>([])
-  const [errors, setErrors] = useState<string[]>([])
+  type Message = {
+    type: string
+    sessionId: string
+    userId?: string
+    percentage?: number
+    status?: string
+    receivedAt?: string
+  }
+
+  const [messages, setMessages] = useState<Message[]>([])
+  const [_errors, setErrors] = useState<string[]>([])
 
   const realTime = useRealTimeSession({
     sessionId,
@@ -22,11 +33,16 @@ export default function TestRealTimePage() {
   })
 
   // Listen for connection errors
-  window.addEventListener("error", e => {
-    if (e.message.includes("SSE")) {
-      setErrors(prev => [...prev, `${new Date().toISOString()}: ${e.message}`])
+  useEffect(() => {
+    const handleError = (e: ErrorEvent) => {
+      if (e.message.includes("SSE")) {
+        setErrors(prev => [...prev, `${new Date().toISOString()}: ${e.message}`])
+      }
     }
-  })
+
+    window.addEventListener("error", handleError)
+    return () => window.removeEventListener("error", handleError)
+  }, [])
 
   const sendTestMessage = () => {
     realTime.send({
@@ -56,16 +72,22 @@ export default function TestRealTimePage() {
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="font-medium text-sm">Session ID</label>
+              <label htmlFor={sessionIdInput} className="font-medium text-sm">
+                Session ID
+              </label>
               <Input
+                id={sessionIdInput}
                 value={sessionId}
                 onChange={e => setSessionId(e.target.value)}
                 placeholder="Session ID"
               />
             </div>
             <div>
-              <label className="font-medium text-sm">User ID</label>
+              <label htmlFor={userIdInput} className="font-medium text-sm">
+                User ID
+              </label>
               <Input
+                id={userIdInput}
                 value={userId}
                 onChange={e => setUserId(e.target.value)}
                 placeholder="User ID"
@@ -107,7 +129,10 @@ export default function TestRealTimePage() {
         <CardContent>
           <div className="max-h-96 space-y-2 overflow-y-auto">
             {messages.map((message, index) => (
-              <div key={index} className="rounded bg-gray-50 p-2 text-sm">
+              <div
+                key={`${message.type}-${message.userId}-${index}`}
+                className="rounded bg-gray-50 p-2 text-sm"
+              >
                 <div className="font-mono">
                   <strong>{message.type}</strong>
                   {message.userId && ` from ${message.userId}`}

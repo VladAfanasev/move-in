@@ -3,15 +3,13 @@
 import type { User } from "@supabase/supabase-js"
 import { AlertCircle, CheckCircle, Play, Settings, Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useEffect, useId, useState } from "react"
+import { useCallback, useEffect, useId, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RangeSlider } from "@/components/ui/range-slider"
-import { Slider } from "@/components/ui/slider"
-import { Textarea } from "@/components/ui/textarea"
 
 interface Property {
   id: string
@@ -88,7 +86,7 @@ export function CostCalculationForm({
   })
 
   // Member proposals (mock data for now)
-  const [memberProposals, _setMemberProposals] = useState<MemberProposal[]>([])
+  const [_memberProposals, _setMemberProposals] = useState<MemberProposal[]>([])
 
   // Intention setting state
   const [showIntentionModal, setShowIntentionModal] = useState(false)
@@ -104,7 +102,7 @@ export function CostCalculationForm({
   const allIntentionsSet = memberIntentions.every(
     intention => intention.status === "intentions_set",
   )
-  const canStartSession = allIntentionsSet && memberIntentions.length >= 2
+  const _canStartSession = allIntentionsSet && memberIntentions.length >= 2
 
   // Calculate if 100% is achievable
   const totalMaxPercentage = memberIntentions
@@ -127,7 +125,7 @@ export function CostCalculationForm({
   const minInvestmentPercentage = 10
 
   // Update investment amount when percentage changes
-  const handlePercentageChange = (percentage: number) => {
+  const _handlePercentageChange = (percentage: number) => {
     setIsPercentageMode(true)
     const amount = Math.round((totalCosts * percentage) / 100)
     setUserProposal(prev => ({
@@ -138,7 +136,7 @@ export function CostCalculationForm({
   }
 
   // Update percentage when amount changes
-  const handleAmountChange = (amount: number) => {
+  const _handleAmountChange = (amount: number) => {
     setIsPercentageMode(false)
     const percentage = Math.min(
       maxInvestmentPercentage,
@@ -187,8 +185,23 @@ export function CostCalculationForm({
     }).format(amount)
   }
 
+  // Initialize empty intentions for members
+  const initializeEmptyIntentions = useCallback(() => {
+    const intentions = _members
+      .filter(m => m.status === "active")
+      .map((member, index) => ({
+        userId: member.userId,
+        userName:
+          member.userId === currentUser.id
+            ? "You"
+            : member.fullName || member.email?.split("@")[0] || `Member ${index + 1}`,
+        status: "not_set" as const,
+      }))
+    setMemberIntentions(intentions)
+  }, [_members, currentUser.id])
+
   // Load member intentions from database
-  const loadMemberIntentions = async () => {
+  const loadMemberIntentions = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -213,7 +226,7 @@ export function CostCalculationForm({
         }
       } else {
         // If session creation fails, still get/create calculation for intentions
-        const calcResponse = await fetch("/api/intentions", {
+        const _calcResponse = await fetch("/api/intentions", {
           method: "GET",
           headers: { "Content-Type": "application/json" },
         })
@@ -240,29 +253,14 @@ export function CostCalculationForm({
     } finally {
       setLoading(false)
     }
-  }
-
-  // Initialize empty intentions for members
-  const initializeEmptyIntentions = () => {
-    const intentions = _members
-      .filter(m => m.status === "active")
-      .map((member, index) => ({
-        userId: member.userId,
-        userName:
-          member.userId === currentUser.id
-            ? "You"
-            : member.fullName || member.email?.split("@")[0] || `Member ${index + 1}`,
-        status: "not_set" as const,
-      }))
-    setMemberIntentions(intentions)
-  }
+  }, [group.id, property.id, costs, initializeEmptyIntentions])
 
   // Load intentions on component mount
   useEffect(() => {
     loadMemberIntentions()
-  }, [group.id, property.id])
+  }, [loadMemberIntentions])
 
-  const handleSubmitProposal = async () => {
+  const _handleSubmitProposal = async () => {
     // TODO: Implement server action to save proposal
     console.log("Submitting proposal:", {
       propertyId: property.id,
@@ -617,7 +615,7 @@ export function CostCalculationForm({
                       <div className="flex items-center space-x-2">
                         <CheckCircle className="h-5 w-5 text-green-600" />
                         <div>
-                          <div className="font-semibold text-green-800">All intentions set!</div>
+                          <div className="font-semibold text-green-800">Alle intenties aanwezig!</div>
                           <div className="text-green-700 text-sm">
                             {canReach100
                               ? "100% is achievable with current maximum values"
@@ -633,10 +631,10 @@ export function CostCalculationForm({
                         <Play className="h-4 w-4" />
                         <span>
                           {startingSession
-                            ? "Starting..."
+                            ? "Sessie starten..."
                             : existingSessionId
-                              ? "Go to session"
-                              : "Start Live Session"}
+                              ? "Ga naar sessie"
+                              : "Start Live Sessie"}
                         </span>
                       </Button>
                     </div>

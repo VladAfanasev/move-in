@@ -4,7 +4,7 @@ import { broadcastToSession } from "@/lib/sse-connections"
 import { createClient } from "@/lib/supabase/server"
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: Promise<{ sessionId: string }> },
 ) {
   try {

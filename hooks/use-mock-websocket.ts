@@ -27,7 +27,7 @@ interface MockWebSocket {
 const globalHandlers = new Set<WebSocketEventHandler>()
 const simulatedDelay = 100 // ms
 
-export function useMockWebSocket(sessionId: string, currentUserId: string): MockWebSocket {
+export function useMockWebSocket(_sessionId: string, currentUserId: string): MockWebSocket {
   const handlersRef = useRef(new Set<WebSocketEventHandler>())
 
   const send = useCallback(

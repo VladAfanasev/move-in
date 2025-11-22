@@ -17,7 +17,9 @@ export interface RealTimeMessage {
   activity?: "typing" | "adjusting" | "idle"
   users?: string[]
   timestamp?: number
-  [key: string]: any
+  sessionId?: string
+  socketId?: string
+  isOnline?: boolean
 }
 
 export interface UseRealTimeSessionOptions {
@@ -38,7 +40,7 @@ export function useRealTimeSession({ sessionId, userId, onMessage }: UseRealTime
 
   // Function to send messages to other users
   const send = useCallback(
-    async (message: any) => {
+    async (message: Omit<RealTimeMessage, "timestamp">) => {
       if (!isConnected) {
         console.warn("Not connected, cannot send message:", message)
         return
@@ -150,7 +152,7 @@ export function useRealTimeSession({ sessionId, userId, onMessage }: UseRealTime
         connect()
       }, delay)
     }
-  }, [sessionId, userId, onMessage, reconnectAttempts, maxReconnectAttempts])
+  }, [sessionId, userId, onMessage, reconnectAttempts])
 
   // Disconnect from SSE
   const disconnect = useCallback(() => {

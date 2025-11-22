@@ -56,7 +56,7 @@ const RangeSlider = React.forwardRef<
           setMaxInput(calculatedMax)
         }
       }
-    }, [value, totalAmount])
+    }, [value, totalAmount, localValue[0], maxInput, minInput])
 
     const handleSliderChange = (newValue: number[]) => {
       setLocalValue(newValue)

@@ -1,6 +1,5 @@
 "use client"
 
-import { X } from "lucide-react"
 import type * as React from "react"
 
 interface DialogProps {
@@ -25,10 +24,27 @@ interface DialogTitleProps {
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
   if (!open) return null
 
+  const handleBackdropClick = () => {
+    onOpenChange(false)
+  }
+
+  const handleBackdropKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault()
+      onOpenChange(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50" onClick={() => onOpenChange(false)} />
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/50"
+        onClick={handleBackdropClick}
+        onKeyDown={handleBackdropKeyDown}
+        aria-label="Close dialog"
+      />
       {/* Content */}
       <div className="relative z-10">{children}</div>
     </div>

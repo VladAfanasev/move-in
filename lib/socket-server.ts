@@ -45,9 +45,11 @@ export const initSocketServer = (httpServer: HTTPServer) => {
       })
 
       // Send current online users to the newly joined user
-      const socketsInRoom = await io!.in(sessionId).fetchSockets()
-      const onlineUsers = socketsInRoom.map(s => s.data?.userId).filter(Boolean)
-      socket.emit("online-users", onlineUsers)
+      if (io) {
+        const socketsInRoom = await io.in(sessionId).fetchSockets()
+        const onlineUsers = socketsInRoom.map(s => s.data?.userId).filter(Boolean)
+        socket.emit("online-users", onlineUsers)
+      }
     })
 
     // Handle percentage updates

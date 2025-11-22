@@ -3,6 +3,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { LiveNegotiationSession } from "@/components/live-negotiation-session"
+import { LiveSessionHeader } from "@/components/live-session-header"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -79,49 +80,57 @@ export default async function LiveNegotiationPage({ params }: LiveNegotiationPag
       />
 
       <div className="flex flex-1 flex-col space-y-6 p-6">
-        {/* Property Header */}
+        {/* Combined Property and Session Info Card */}
         <Card className="overflow-hidden">
           <div className="flex">
-            {/* Property Image - Left Side */}
-            <div className="relative h-32 w-64 bg-muted">
-              <Image
-                src={property.images?.[0] || "/placeholder-property.svg"}
-                alt={property.address}
-                fill
-                className="object-cover"
-                sizes="256px"
-              />
-            </div>
+            {/* Property Section - Left Side */}
+            <div className="flex w-1/2">
+              {/* Property Image - Half of left side */}
+              <div className="relative w-1/2 bg-muted">
+                <Image
+                  src={property.images?.[0] || "/placeholder-property.svg"}
+                  alt={property.address}
+                  fill
+                  className="object-cover"
+                  sizes="300px"
+                />
+              </div>
 
-            {/* Property Info - Right Side */}
-            <div className="flex-1 p-4">
-              <h1 className="mb-2 font-bold text-xl">
-                🏠 {property.address}, {property.zipCode} {property.city}
-              </h1>
+              {/* Property Info - Half of left side */}
+              <div className="w-1/2 p-4">
+                <h1 className="mb-2 font-bold text-lg">🏠 {property.address}</h1>
+                <p className="mb-3 text-muted-foreground text-sm">
+                  {property.zipCode} {property.city}
+                </p>
 
-              <div className="flex items-center space-x-6 text-sm">
-                <div>
-                  <span className="block font-medium text-primary">Vraagprijs</span>
-                  <span className="font-semibold text-lg">
-                    {formatCurrency(Number(property.price))}
-                  </span>
+                <div className="space-y-2">
+                  <div>
+                    <span className="block font-medium text-primary text-xs">Vraagprijs</span>
+                    <span className="font-semibold text-lg">
+                      {formatCurrency(Number(property.price))}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-muted-foreground">
-                  Live Session • Started:{" "}
-                  {new Date().toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })}
-                </div>
+
+                <div className="mt-3 text-muted-foreground text-xs">Groep: {group.name}</div>
               </div>
             </div>
+
+            {/* Separator */}
+            <div className="my-4 w-px bg-border"></div>
+
+            {/* Session Info Section - Right Side */}
+            <LiveSessionHeader property={property} group={group} currentUser={user} />
           </div>
         </Card>
 
-        {/* Live Negotiation Session */}
+        {/* Live Negotiation Session Content */}
         <LiveNegotiationSession
           property={property}
           group={group}
           members={members}
           currentUser={user}
-          totalCosts={Number(property.price) * 1.1} // Simplified calculation for demo
+          totalCosts={Number(property.price)}
         />
       </div>
     </div>

@@ -16,6 +16,23 @@ export interface MemberIntention {
   status: "not_set" | "setting" | "intentions_set" | "ready_for_session"
 }
 
+interface ParticipantRow {
+  userId: string
+  currentPercentage: string | number
+  intendedPercentage?: string | number
+  status: string
+  isOnline: string | boolean
+  lastActivity: string
+}
+
+interface SessionUpdateData {
+  lastActivity: ReturnType<typeof sql>
+  updatedAt: ReturnType<typeof sql>
+  currentPercentage?: string
+  status?: string
+  isOnline?: string
+}
+
 export interface NegotiationSession {
   id: string
   calculationId: string
@@ -212,7 +229,7 @@ export async function getNegotiationSession(sessionId: string): Promise<Negotiat
     status: session[0].status as "intention_setting" | "active" | "completed" | "cancelled",
     totalPercentage: Number(session[0].totalPercentage),
     createdAt: session[0].createdAt.toISOString(),
-    participants: participants.map((p: any) => ({
+    participants: participants.map((p: ParticipantRow) => ({
       userId: p.userId,
       currentPercentage: Number(p.currentPercentage),
       intendedPercentage: p.intendedPercentage ? Number(p.intendedPercentage) : undefined,
@@ -250,7 +267,7 @@ export async function updateMemberSessionStatus(
     isOnline?: boolean
   },
 ) {
-  const updateData: any = {
+  const updateData: SessionUpdateData = {
     lastActivity: sql`now()`,
     updatedAt: sql`now()`,
   }
@@ -286,7 +303,10 @@ async function updateSessionTotalPercentage(sessionId: string) {
     .from(memberSessionParticipation)
     .where(eq(memberSessionParticipation.sessionId, sessionId))
 
-  const total = participants.reduce((sum: number, p: any) => sum + Number(p.currentPercentage), 0)
+  const total = participants.reduce(
+    (sum: number, p: ParticipantRow) => sum + Number(p.currentPercentage),
+    0,
+  )
 
   await db
     .update(negotiationSessions)

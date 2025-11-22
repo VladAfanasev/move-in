@@ -1,16 +1,28 @@
 // Global connection manager for SSE
 // In production, this should be replaced with Redis or another shared store
 
-type Controller = ReadableStreamDefaultController<any>
+type MessageData = {
+  type: string
+  userId?: string
+  percentage?: number
+  status?: string
+  users?: string[]
+  timestamp?: number
+}
+
+type Controller = ReadableStreamDefaultController<string>
 type SessionConnections = Map<string, Controller>
 type GlobalConnections = Map<string, SessionConnections>
 
 // Use a global variable to persist connections across requests
 const getConnections = (): GlobalConnections => {
-  if (!(globalThis as any).__sse_connections) {
-    ;(globalThis as any).__sse_connections = new Map()
+  const global = globalThis as {
+    __sse_connections?: GlobalConnections
   }
-  return (globalThis as any).__sse_connections
+  if (!global.__sse_connections) {
+    global.__sse_connections = new Map()
+  }
+  return global.__sse_connections
 }
 
 export function addConnection(sessionId: string, userId: string, controller: Controller) {
@@ -20,7 +32,10 @@ export function addConnection(sessionId: string, userId: string, controller: Con
     connections.set(sessionId, new Map())
   }
 
-  connections.get(sessionId)!.set(userId, controller)
+  const sessionConnections = connections.get(sessionId)
+  if (sessionConnections) {
+    sessionConnections.set(userId, controller)
+  }
   console.log(`Added connection for user ${userId} in session ${sessionId}`)
 }
 
@@ -49,7 +64,11 @@ export function getOnlineUsers(sessionId: string): string[] {
   return Array.from(sessionConnections.keys())
 }
 
-export function broadcastToSession(sessionId: string, message: any, excludeUserId?: string) {
+export function broadcastToSession(
+  sessionId: string,
+  message: MessageData,
+  excludeUserId?: string,
+) {
   const connections = getConnections()
   const sessionConnections = connections.get(sessionId)
 

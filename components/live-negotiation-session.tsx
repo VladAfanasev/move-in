@@ -69,7 +69,8 @@ export function LiveNegotiationSession({
   const [sessionLocked, setSessionLocked] = useState(false)
   const [showCountdown, setShowCountdown] = useState(false)
   const [countdown, setCountdown] = useState(5)
-  const [sessionStartTime, setSessionStartTime] = useState<string | null>(null)
+  const [_sessionStartTime, setSessionStartTime] = useState<string | null>(null)
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([])
 
   // Handle real-time messages
   const handleRealTimeMessage = useCallback(
@@ -133,6 +134,19 @@ export function LiveNegotiationSession({
             ),
           )
           break
+
+        case "online-users":
+          // Update online users list
+          if (message.users) {
+            setOnlineUsers(message.users)
+            setSessionMembers(prev =>
+              prev.map(member => ({
+                ...member,
+                isOnline: message.users?.includes(member.userId),
+              })),
+            )
+          }
+          break
       }
     },
     [currentUser.id],
@@ -181,6 +195,7 @@ export function LiveNegotiationSession({
   // Update online status for session members
   useEffect(() => {
     if (realTime.isConnected && realTime.onlineUsers.length > 0) {
+      setOnlineUsers(realTime.onlineUsers)
       setSessionMembers(prev =>
         prev.map(member => ({
           ...member,
@@ -368,7 +383,7 @@ export function LiveNegotiationSession({
   }
 
   // Load session data from database
-  const loadSession = async () => {
+  const loadSession = useCallback(async () => {
     try {
       setLoading(true)
 
@@ -418,8 +433,17 @@ export function LiveNegotiationSession({
             }
           }
 
+          // Define participant interface
+          interface Participant {
+            userId: string
+            currentPercentage: number
+            status: string
+            isOnline: boolean
+            lastActivity: string
+          }
+
           // Convert participants to session members
-          const sessionMembers = sessionData.participants.map((participant: any) => ({
+          const sessionMembers = sessionData.participants.map((participant: Participant) => ({
             userId: participant.userId,
             name:
               participant.userId === currentUser.id
@@ -437,7 +461,7 @@ export function LiveNegotiationSession({
 
           // Set your percentage
           const yourParticipant = sessionData.participants.find(
-            (p: any) => p.userId === currentUser.id,
+            (p: Participant) => p.userId === currentUser.id,
           )
           if (yourParticipant) {
             setYourPercentage(yourParticipant.currentPercentage)
@@ -452,12 +476,12 @@ export function LiveNegotiationSession({
     } finally {
       setLoading(false)
     }
-  }
+  }, [group.id, property.id, currentUser.id, members])
 
   // Load session on component mount
   useEffect(() => {
     loadSession()
-  }, [group.id, property.id])
+  }, [loadSession])
 
   // Auto-lock countdown
   if (showCountdown) {
@@ -520,302 +544,250 @@ export function LiveNegotiationSession({
 
   return (
     <TooltipProvider delayDuration={50}>
-      <div className="space-y-6">
-        {/* Live Session Header */}
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div
-                  className={`h-3 w-3 rounded-full ${
-                    realTime.isConnected ? "animate-pulse bg-green-500" : "bg-red-500"
-                  }`}
-                />
-                <div>
-                  <h2 className="font-semibold text-green-800">
-                    Live Negotiation Session {!realTime.isConnected && "(Disconnected)"}
-                  </h2>
-                  <p className="text-green-700 text-sm">
-                    Everyone can now adjust their investment percentage. Session locks when all
-                    confirm and total = 100%
-                  </p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="text-green-600 text-sm">
-                  {realTime.onlineUsers.length} members online
-                  {realTime.reconnectAttempts > 0 && (
-                    <span className="text-orange-600"> (reconnecting...)</span>
-                  )}
-                  {process.env.NODE_ENV === "development" && (
-                    <div className="text-gray-500 text-xs">
-                      Session: {sessionId || "loading..."} | Connected:{" "}
-                      {realTime.isConnected ? "✅" : "❌"}
-                    </div>
-                  )}
-                </div>
-                <div className="text-green-600 text-xs">
-                  Started: {sessionStartTime || "Loading..."}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          {/* Main Area - Left/Center */}
-          <div className="space-y-6 lg:col-span-2">
-            {/* Total Progress */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="mb-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-semibold">Total Progress</span>
-                    <span
-                      className={`font-semibold text-lg ${
-                        totalPercentage === 100 ? "text-green-600" : ""
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Main Area - Left/Center */}
+        <div className="space-y-6 lg:col-span-2">
+          {/* Total Progress */}
+          <Card>
+            <CardContent className="pt-6">
+              <div className="mb-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-semibold">Totale investering</span>
+                  <span
+                    className={`font-semibold text-lg ${totalPercentage === 100 ? "text-green-600" : ""
                       }`}
-                    >
-                      {totalPercentage % 1 === 0
-                        ? `${totalPercentage.toFixed(0)}%`
-                        : `${totalPercentage.toFixed(1)}%`}
-                    </span>
-                  </div>
-                  <Progress value={Math.min(100, totalPercentage)} className="h-4" />
-                  <div
-                    className={`mt-2 flex items-center space-x-2 ${
-                      totalPercentage === 100 && allConfirmed
-                        ? "text-green-600"
-                        : totalPercentage > 100
-                          ? "text-red-600"
-                          : totalPercentage >= 95
-                            ? "text-yellow-600"
-                            : "text-orange-600"
-                    }`}
                   >
-                    {totalPercentage > 100 ? (
-                      <AlertCircle className="h-4 w-4" />
-                    ) : totalPercentage === 100 && allConfirmed ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : totalPercentage === 100 ? (
-                      <CheckCircle className="h-4 w-4" />
-                    ) : null}
-                    <span className="font-medium text-sm">{getProgressMessage()}</span>
-                  </div>
+                    {totalPercentage % 1 === 0
+                      ? `${totalPercentage.toFixed(0)}%`
+                      : `${totalPercentage.toFixed(1)}%`}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Your Investment */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Your Investment</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            // Calculate what percentage is needed to reach exactly 100%
-                            const otherMembersTotal = sessionMembers
-                              .filter(member => member.userId !== currentUser.id)
-                              .reduce((sum, member) => sum + member.percentage, 0)
-
-                            const neededPercentage = 100 - otherMembersTotal
-                            const constrainedPercentage = Math.max(
-                              10,
-                              Math.min(90, neededPercentage),
-                            )
-
-                            if (yourStatus === "confirmed" || sessionLocked) return
-                            handlePercentageChange(constrainedPercentage)
-                          }}
-                          disabled={yourStatus === "confirmed" || sessionLocked}
-                        >
-                          <Target className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Set percentage to reach exactly 100%</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            // Calculate equal split among all members
-                            const totalMembers = sessionMembers.length
-                            const equalPercentage = 100 / totalMembers
-                            const constrainedPercentage = Math.max(
-                              10,
-                              Math.min(90, equalPercentage),
-                            )
-
-                            if (yourStatus === "confirmed" || sessionLocked) return
-                            handlePercentageChange(constrainedPercentage)
-                          }}
-                          disabled={yourStatus === "confirmed" || sessionLocked}
-                        >
-                          <Scale className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Set equal split among all members</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
+                <Progress value={Math.min(100, totalPercentage)} className="h-4" />
+                <div
+                  className={`mt-2 flex items-center space-x-2 ${totalPercentage === 100 && allConfirmed
+                    ? "text-green-600"
+                    : totalPercentage > 100
+                      ? "text-red-600"
+                      : totalPercentage >= 95
+                        ? "text-yellow-600"
+                        : "text-orange-600"
+                    }`}
+                >
+                  {totalPercentage > 100 ? (
+                    <AlertCircle className="h-4 w-4" />
+                  ) : totalPercentage === 100 && allConfirmed ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : totalPercentage === 100 ? (
+                    <CheckCircle className="h-4 w-4" />
+                  ) : null}
+                  <span className="font-medium text-sm">{getProgressMessage()}</span>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {yourStatus === "adjusting" ? (
-                  <>
-                    <div>
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="font-medium">Percentage</span>
-                        <div className="flex items-center space-x-2">
-                          {isUpdating && (
-                            <span className="animate-pulse text-orange-500 text-xs">
-                              Sending...
-                            </span>
-                          )}
-                          <span className="font-semibold text-lg">
-                            {yourPercentage.toFixed(1)}%
-                          </span>
-                        </div>
-                      </div>
-                      <Slider
-                        value={[yourPercentage]}
-                        onValueChange={value => handlePercentageChange(value[0])}
-                        min={10}
-                        max={90}
-                        step={0.1}
-                        className="mb-2"
-                      />
-                      <div className="flex justify-between text-muted-foreground text-xs">
-                        <span>10%</span>
-                        <span>50%</span>
-                        <span>90%</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Your Investment */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Jouw investering</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Calculate what percentage is needed to reach exactly 100%
+                          const otherMembersTotal = sessionMembers
+                            .filter(member => member.userId !== currentUser.id)
+                            .reduce((sum, member) => sum + member.percentage, 0)
+
+                          const neededPercentage = 100 - otherMembersTotal
+                          const constrainedPercentage = Math.max(10, Math.min(90, neededPercentage))
+
+                          if (yourStatus === "confirmed" || sessionLocked) return
+                          handlePercentageChange(constrainedPercentage)
+                        }}
+                        disabled={yourStatus === "confirmed" || sessionLocked}
+                      >
+                        <Target className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Set percentage to reach exactly 100%</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Calculate equal split among all members
+                          const totalMembers = sessionMembers.length
+                          const equalPercentage = 100 / totalMembers
+                          const constrainedPercentage = Math.max(10, Math.min(90, equalPercentage))
+
+                          if (yourStatus === "confirmed" || sessionLocked) return
+                          handlePercentageChange(constrainedPercentage)
+                        }}
+                        disabled={yourStatus === "confirmed" || sessionLocked}
+                      >
+                        <Scale className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Set equal split among all members</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {yourStatus === "adjusting" ? (
+                <>
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="font-medium">Percentage</span>
+                      <div className="flex items-center space-x-2">
+                        {isUpdating && (
+                          <span className="animate-pulse text-orange-500 text-xs">Sending...</span>
+                        )}
+                        <span className="font-semibold text-lg">{yourPercentage.toFixed(1)}%</span>
                       </div>
                     </div>
-
-                    <div className="rounded-lg bg-muted p-4 text-center">
-                      <div className="font-semibold text-2xl">{formatCurrency(yourAmount)}</div>
-                      <div className="text-muted-foreground text-sm">Your investment</div>
+                    <Slider
+                      value={[yourPercentage]}
+                      onValueChange={value => handlePercentageChange(value[0])}
+                      min={10}
+                      max={90}
+                      step={0.1}
+                      className="mb-2"
+                    />
+                    <div className="flex justify-between text-muted-foreground text-xs">
+                      <span>10%</span>
+                      <span>50%</span>
+                      <span>90%</span>
                     </div>
+                  </div>
 
-                    <Button
-                      onClick={handleConfirm}
-                      disabled={!canConfirm}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {canConfirm
-                        ? `Confirm ${yourPercentage.toFixed(1)}%`
-                        : yourPercentage < 10 || yourPercentage > 90
-                          ? "Percentage must be 10-90%"
-                          : "Total must be 100% to confirm"}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="rounded-lg bg-green-50 p-4 text-center">
-                      <div className="flex items-center justify-center space-x-2 text-green-700">
-                        <CheckCircle className="h-5 w-5" />
-                        <span className="font-semibold">Confirmed</span>
+                  <div className="rounded-lg bg-muted p-4 text-center">
+                    <div className="font-semibold text-2xl">{formatCurrency(yourAmount)}</div>
+                    <div className="text-muted-foreground text-sm">Jouw investering</div>
+                  </div>
+
+                  <Button
+                    onClick={handleConfirm}
+                    disabled={!canConfirm}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {canConfirm
+                      ? `Bevestig ${yourPercentage.toFixed(1)}%`
+                      : yourPercentage < 10 || yourPercentage > 90
+                        ? "Percentage moet tussen 10-90% zijn"
+                        : "Totaal moet 100% zijn om te bevestigen"}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <div className="rounded-lg bg-green-50 p-4 text-center">
+                    <div className="flex items-center justify-center space-x-2 text-green-700">
+                      <CheckCircle className="h-5 w-5" />
+                        <span className="font-semibold">Bevestigd</span>
                       </div>
-                      <div className="mt-2 font-semibold text-2xl">
-                        {yourPercentage.toFixed(1)}%
-                      </div>
+                      <div className="mt-2 font-semibold text-2xl">{yourPercentage.toFixed(1)}%</div>
                       <div className="font-medium">{formatCurrency(yourAmount)}</div>
                     </div>
 
                     <Button onClick={handleChangeMind} variant="outline" className="w-full">
-                      Change my percentage
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                    Verander mijn aandeel
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-          {/* Members Panel - Right */}
-          <div>
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
+        {/* Members Panel - Right */}
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="">
+                <div className="flex items-center space-x-2">
                   <UserIcon className="h-5 w-5" />
                   <span>Groepsleden</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {sessionMembers.map(member => {
-                    const isYou = member.userId === currentUser.id
-                    const displayStatus = isYou ? yourStatus : member.status
+                </div>
+                <div>
+                  {/* Online users count  */}
+                  <span className="text-green-600 text-sm">{onlineUsers.length} in de sessie</span>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {sessionMembers.map(member => {
+                  const isYou = member.userId === currentUser.id
+                  const displayStatus = isYou ? yourStatus : member.status
 
-                    return (
-                      <div
-                        key={member.userId}
-                        className={`rounded-lg p-3 ${
-                          isYou ? "border border-primary/20 bg-primary/5" : "bg-muted/50"
+                  return (
+                    <div
+                      key={member.userId}
+                      className={`rounded-lg p-3 ${isYou ? "border border-primary/20 bg-primary/5" : "bg-muted/50"
                         }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-2">
-                            <span className="font-medium">{member.name}</span>
-                            {member.isOnline && (
-                              <div
-                                className="h-2 w-2 animate-pulse rounded-full bg-green-500"
-                                title="Online"
-                              />
-                            )}
-                          </div>
-                          <div className="flex flex-col items-end space-y-1">
-                            <Badge
-                              variant={displayStatus === "confirmed" ? "default" : "secondary"}
-                              className={displayStatus === "confirmed" ? "bg-green-600" : ""}
-                            >
-                              {displayStatus === "confirmed" ? "Confirmed" : "Adjusting"}
-                            </Badge>
-                            {member.activity === "adjusting" && (
-                              <span className="animate-pulse text-blue-600 text-xs">
-                                🎛️ Adjusting now...
-                              </span>
-                            )}
-                            {member.lastActivity &&
-                              member.lastActivity > Date.now() - 10000 &&
-                              member.activity !== "adjusting" && (
-                                <span className="text-green-600 text-xs">• Just updated</span>
-                              )}
-                            {isUpdating && isYou && (
-                              <span className="animate-pulse text-orange-600 text-xs">
-                                📡 Sending...
-                              </span>
-                            )}
-                          </div>
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{member.name}</span>
+                          {member.isOnline && (
+                            <div
+                              className="h-2 w-2 animate-pulse rounded-full bg-green-500"
+                              title="Online"
+                            />
+                          )}
                         </div>
-                        <div className="mt-2">
-                          <div className="font-semibold text-lg">
-                            {isYou ? yourPercentage.toFixed(1) : member.percentage.toFixed(1)}%
-                          </div>
-                          <div className="text-muted-foreground text-sm">
-                            {formatCurrency(
-                              (totalCosts * (isYou ? yourPercentage : member.percentage)) / 100,
+                        <div className="flex flex-col items-end space-y-1">
+                          <Badge
+                            variant={displayStatus === "confirmed" ? "default" : "secondary"}
+                            className={displayStatus === "confirmed" ? "bg-green-600" : ""}
+                          >
+                            {displayStatus === "confirmed" ? "Confirmed" : "Adjusting"}
+                          </Badge>
+                          {member.activity === "adjusting" && (
+                            <span className="animate-pulse text-blue-600 text-xs">
+                              Adjusting now...
+                            </span>
+                          )}
+                          {member.lastActivity &&
+                            member.lastActivity > Date.now() - 10000 &&
+                            member.activity !== "adjusting" && (
+                              <span className="text-green-600 text-xs">Zojuist geupdate</span>
                             )}
-                          </div>
+                          {isUpdating && isYou && (
+                            <span className="animate-pulse text-orange-600 text-xs">
+                              Sending...
+                            </span>
+                          )}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                      <div className="mt-2">
+                        <div className="font-semibold text-lg">
+                          {isYou ? yourPercentage.toFixed(1) : member.percentage.toFixed(1)}%
+                        </div>
+                        <div className="text-muted-foreground text-sm">
+                          {formatCurrency(
+                            (totalCosts * (isYou ? yourPercentage : member.percentage)) / 100,
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </TooltipProvider>

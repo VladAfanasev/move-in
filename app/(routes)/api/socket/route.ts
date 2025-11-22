@@ -10,7 +10,8 @@ export async function GET(req: NextRequest) {
     console.log("*First use, starting socket.io server")
 
     // Get the server from the request
-    const httpServer: NetServer = (req as any).socket?.server as NetServer
+    const httpServer: NetServer = (req as { socket?: { server?: NetServer } }).socket
+      ?.server as NetServer
 
     if (!httpServer) {
       return new Response("Socket server not available", { status: 500 })
