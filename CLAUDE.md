@@ -22,6 +22,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `bun run db:push` - Push schema changes directly to database (dev only)
 - `bun run db:studio` - Open Drizzle Studio for database exploration
 
+### Testing (Playwright)
+- `bun run test` - Run all tests (unit, E2E, integration)
+- `bun run test:unit` - Run unit tests only
+- `bun run test:e2e` - Run end-to-end tests only
+- `bun run test:integration` - Run database integration tests only
+- `bun run test:headed` - Run tests in headed mode (see browser)
+- `bun run test:debug` - Run tests with debugging tools
+- `bun run test:ui` - Open Playwright UI for interactive testing
+- `bun run test:report` - View HTML test report
+- `bun run test:install` - Install Playwright browsers
+
 ### Docker Deployment
 - `docker compose up -d` - Run the application via Docker Compose
 - `docker compose logs -f` - View container logs

@@ -15,7 +15,16 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:reset": "bun run db/reset.ts",
-    "db:seed": "bun run db/seed.ts"
+    "db:seed": "bun run db/seed.ts",
+    "test": "playwright test",
+    "test:unit": "playwright test --grep=\"\\.unit\\.spec\\.ts\"",
+    "test:e2e": "playwright test --grep=\"\\.e2e\\.spec\\.ts\"",
+    "test:integration": "playwright test --grep=\"\\.integration\\.spec\\.ts\"",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:ui": "playwright test --ui",
+    "test:report": "playwright show-report",
+    "test:install": "playwright install"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
@@ -62,12 +71,14 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@playwright/test": "^1.56.1",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.5",
+    "playwright": "^1.56.1",
     "postcss": "^8",
     "tailwindcss": "^3",
     "tailwindcss-animate": "^1.0.7",
