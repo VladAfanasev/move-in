@@ -89,7 +89,7 @@ test.describe("cost-calculations.ts", () => {
       expect(memberIntention.userName).toBeTruthy()
       expect(memberIntention.desiredPercentage).toBeGreaterThan(0)
       expect(memberIntention.maxPercentage).toBeGreaterThanOrEqual(
-        memberIntention.desiredPercentage!,
+        memberIntention.desiredPercentage || 0,
       )
       expect(["not_set", "setting", "intentions_set", "ready_for_session"]).toContain(
         memberIntention.status,

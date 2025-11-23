@@ -1,11 +1,10 @@
 "use client"
 
 import clsx from "clsx"
-import { Bath, Bed, Heart, VectorSquare } from "lucide-react"
+import { Bath, Bed, VectorSquare } from "lucide-react"
 import Image from "next/image"
 import { AddPropertyToGroup } from "@/components/add-property-to-group"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Property } from "@/lib/types"
 
@@ -19,8 +18,6 @@ interface PropertyListItemProps {
 export function PropertyListItem({
   property,
   onViewDetails,
-  onToggleFavorite,
-  isFavorite = false,
 }: PropertyListItemProps) {
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price)
@@ -87,7 +84,7 @@ export function PropertyListItem({
 
             <div className="absolute top-3 right-3 flex gap-2 opacity-80 hover:opacity-100">
               <AddPropertyToGroup propertyId={property.id} />
-              <Button
+              {/* <Button
                 variant="ghost"
                 size="sm"
                 className="h-8 w-8 bg-white/80 p-1 hover:bg-white"
@@ -98,7 +95,7 @@ export function PropertyListItem({
                     isFavorite ? "fill-red-500 text-red-500" : "text-gray-600"
                   }`}
                 />
-              </Button>
+              </Button> */}
             </div>
           </div>
 
