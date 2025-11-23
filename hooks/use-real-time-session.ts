@@ -11,6 +11,7 @@ export interface RealTimeMessage {
     | "status-change"
     | "online-users"
     | "user-activity"
+    | "session-locked"
   userId?: string
   percentage?: number
   status?: "adjusting" | "confirmed"
@@ -20,6 +21,7 @@ export interface RealTimeMessage {
   sessionId?: string
   socketId?: string
   isOnline?: boolean
+  lockedBy?: string
 }
 
 export interface UseRealTimeSessionOptions {
@@ -107,12 +109,12 @@ export function useRealTimeSession({ sessionId, userId, onMessage }: UseRealTime
           setOnlineUsers(message.users || [])
         }
 
+        console.log("📨 Received SSE message:", message.type, "from:", message.userId, message)
+        
         // Call the provided message handler
         if (onMessage) {
           onMessage(message)
         }
-
-        console.log("Received SSE message:", message)
       } catch (error) {
         console.error("Error parsing SSE message:", error)
       }

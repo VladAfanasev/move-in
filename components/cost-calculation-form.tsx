@@ -57,6 +57,7 @@ interface CostCalculationFormProps {
   group: Group
   members: Member[]
   currentUser: User
+  isSessionLocked?: boolean
 }
 
 export function CostCalculationForm({
@@ -64,6 +65,7 @@ export function CostCalculationForm({
   group,
   members: _members,
   currentUser,
+  isSessionLocked = false,
 }: CostCalculationFormProps) {
   const router = useRouter()
   const formId = useId()
@@ -609,39 +611,57 @@ export function CostCalculationForm({
             {/* Session Status */}
             {!loading && (
               <>
-                {allIntentionsSet && (
+                {isSessionLocked ? (
                   <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle className="h-5 w-5 text-green-600" />
-                        <div>
-                          <div className="font-semibold text-green-800">Alle intenties aanwezig!</div>
-                          <div className="text-green-700 text-sm">
-                            {canReach100
-                              ? "100% is achievable with current maximum values"
-                              : "⚠️ 100% might not be achievable - adjust in live session"}
-                          </div>
-                        </div>
+                    <div className="text-center">
+                      <div className="mb-4">
+                        <CheckCircle className="mx-auto h-12 w-12 text-green-600" />
                       </div>
-                      <Button
-                        onClick={handleStartLiveSession}
-                        className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
-                        disabled={startingSession}
-                      >
-                        <Play className="h-4 w-4" />
-                        <span>
-                          {startingSession
-                            ? "Sessie starten..."
-                            : existingSessionId
-                              ? "Ga naar sessie"
-                              : "Start Live Sessie"}
-                        </span>
-                      </Button>
+                      <h3 className="mb-2 font-semibold text-lg">Kosten berekening afgerond</h3>
+                      <p className="text-muted-foreground">
+                        De negotiatie sessie is afgerond en alle percentages zijn vastgesteld. De
+                        kostenberekening is nu vergrendeld. Bekijk het overzicht voor de finale
+                        details.
+                      </p>
                     </div>
                   </div>
+                ) : (
+                  allIntentionsSet && (
+                    <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <CheckCircle className="h-5 w-5 text-green-600" />
+                          <div>
+                            <div className="font-semibold text-green-800">
+                              Alle intenties aanwezig!
+                            </div>
+                            <div className="text-green-700 text-sm">
+                              {canReach100
+                                ? "100% is achievable with current maximum values"
+                                : "⚠️ 100% might not be achievable - adjust in live session"}
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          onClick={handleStartLiveSession}
+                          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                          disabled={startingSession}
+                        >
+                          <Play className="h-4 w-4" />
+                          <span>
+                            {startingSession
+                              ? "Sessie starten..."
+                              : existingSessionId
+                                ? "Ga naar sessie"
+                                : "Start Live Sessie"}
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                  )
                 )}
 
-                {!allIntentionsSet && (
+                {!(allIntentionsSet || isSessionLocked) && (
                   <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
                     <div className="flex items-center space-x-2">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />

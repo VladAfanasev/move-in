@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, sql, desc } from "drizzle-orm"
 import { db } from "@/db/client"
 import {
   costCalculations,
@@ -19,17 +19,17 @@ export interface MemberIntention {
 interface ParticipantRow {
   userId: string
   currentPercentage: string | number
-  intendedPercentage?: string | number
+  intendedPercentage?: string | number | null
   status: string
   isOnline: string | boolean
-  lastActivity: string
+  lastActivity: string | Date
 }
 
 interface SessionUpdateData {
   lastActivity: ReturnType<typeof sql>
   updatedAt: ReturnType<typeof sql>
   currentPercentage?: string
-  status?: string
+  status?: "adjusting" | "confirmed" | "locked"
   isOnline?: string
 }
 
@@ -207,6 +207,45 @@ export async function getOrCreateNegotiationSession(
 }
 
 // Get negotiation session details
+export async function getCompletedNegotiationSession(calculationId: string): Promise<NegotiationSession | null> {
+  const session = await db
+    .select()
+    .from(negotiationSessions)
+    .where(
+      and(
+        eq(negotiationSessions.calculationId, calculationId),
+        eq(negotiationSessions.status, "completed"),
+      ),
+    )
+    .orderBy(desc(negotiationSessions.lockedAt))
+    .limit(1)
+
+  if (session.length === 0) {
+    return null
+  }
+
+  const participants = await db
+    .select()
+    .from(memberSessionParticipation)
+    .where(eq(memberSessionParticipation.sessionId, session[0].id))
+
+  return {
+    id: session[0].id,
+    calculationId: session[0].calculationId,
+    status: session[0].status as "intention_setting" | "active" | "completed" | "cancelled",
+    totalPercentage: Number(session[0].totalPercentage),
+    createdAt: session[0].createdAt.toISOString(),
+    participants: participants.map((p: any) => ({
+      userId: p.userId,
+      currentPercentage: Number(p.currentPercentage),
+      intendedPercentage: p.intendedPercentage ? Number(p.intendedPercentage) : undefined,
+      status: p.status as "adjusting" | "confirmed" | "locked",
+      isOnline: p.isOnline === "true" || p.isOnline === true,
+      lastActivity: new Date(p.lastActivity),
+    })),
+  }
+}
+
 export async function getNegotiationSession(sessionId: string): Promise<NegotiationSession | null> {
   const session = await db
     .select()
@@ -229,13 +268,13 @@ export async function getNegotiationSession(sessionId: string): Promise<Negotiat
     status: session[0].status as "intention_setting" | "active" | "completed" | "cancelled",
     totalPercentage: Number(session[0].totalPercentage),
     createdAt: session[0].createdAt.toISOString(),
-    participants: participants.map((p: ParticipantRow) => ({
+    participants: participants.map((p: any) => ({
       userId: p.userId,
       currentPercentage: Number(p.currentPercentage),
       intendedPercentage: p.intendedPercentage ? Number(p.intendedPercentage) : undefined,
       status: p.status as "adjusting" | "confirmed" | "locked",
-      isOnline: p.isOnline === "true",
-      lastActivity: p.lastActivity,
+      isOnline: p.isOnline === "true" || p.isOnline === true,
+      lastActivity: new Date(p.lastActivity),
     })),
   }
 }
@@ -296,23 +335,93 @@ export async function updateMemberSessionStatus(
   await updateSessionTotalPercentage(sessionId)
 }
 
-// Update session total percentage
+// Update session total percentage and check for auto-lock conditions
 async function updateSessionTotalPercentage(sessionId: string) {
   const participants = await db
     .select()
     .from(memberSessionParticipation)
     .where(eq(memberSessionParticipation.sessionId, sessionId))
 
-  const total = participants.reduce(
-    (sum: number, p: ParticipantRow) => sum + Number(p.currentPercentage),
-    0,
-  )
+  const total = participants.reduce((sum: number, p: any) => sum + Number(p.currentPercentage), 0)
 
+  // Check if all members confirmed and total is 100%
+  const allConfirmed = participants.every(p => p.status === "confirmed")
+  const isTotal100 = Math.abs(total - 100) < 0.01
+
+  const updateData: {
+    totalPercentage: string
+    updatedAt: ReturnType<typeof sql>
+    status?: "completed"
+    lockedAt?: ReturnType<typeof sql>
+  } = {
+    totalPercentage: total.toString(),
+    updatedAt: sql`now()`,
+  }
+
+  // Auto-lock session if conditions are met
+  if (allConfirmed && isTotal100) {
+    updateData.status = "completed"
+    updateData.lockedAt = sql`now()`
+
+    // Lock all participants
+    await db
+      .update(memberSessionParticipation)
+      .set({
+        status: "locked",
+        updatedAt: sql`now()`,
+      })
+      .where(eq(memberSessionParticipation.sessionId, sessionId))
+  }
+
+  await db.update(negotiationSessions).set(updateData).where(eq(negotiationSessions.id, sessionId))
+}
+
+// Lock negotiation session manually
+export async function lockNegotiationSession(sessionId: string, lockedBy: string) {
+  const session = await db
+    .select()
+    .from(negotiationSessions)
+    .where(eq(negotiationSessions.id, sessionId))
+    .limit(1)
+
+  if (session.length === 0) {
+    throw new Error("Session not found")
+  }
+
+  if (session[0].status === "completed") {
+    return session[0] // Already locked
+  }
+
+  // Update session status
   await db
     .update(negotiationSessions)
     .set({
-      totalPercentage: total.toString(),
+      status: "completed",
+      lockedAt: sql`now()`,
+      lockedBy,
       updatedAt: sql`now()`,
     })
     .where(eq(negotiationSessions.id, sessionId))
+
+  // Lock all participants
+  await db
+    .update(memberSessionParticipation)
+    .set({
+      status: "locked",
+      updatedAt: sql`now()`,
+    })
+    .where(eq(memberSessionParticipation.sessionId, sessionId))
+
+  return await getNegotiationSession(sessionId)
+}
+
+// Check if session is ready for locking
+export async function isSessionReadyForLocking(sessionId: string): Promise<boolean> {
+  const session = await getNegotiationSession(sessionId)
+  if (!session) return false
+
+  const allConfirmed = session.participants.every(p => p.status === "confirmed")
+  const isTotal100 = Math.abs(session.totalPercentage - 100) < 0.01
+
+  return allConfirmed && isTotal100
 }

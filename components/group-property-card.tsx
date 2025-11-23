@@ -1,7 +1,7 @@
 "use client"
 
 import clsx from "clsx"
-import { Bath, Bed, Calculator, Clock, MapPin, MessageSquare, User } from "lucide-react"
+import { Bath, Bed, Calculator, Clock, FileText, MapPin, MessageSquare, User } from "lucide-react"
 import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,6 +15,8 @@ interface GroupPropertyCardProps {
   addedAt: Date
   addedByName?: string | null
   onCalculateCosts?: (propertyId: string) => void
+  hasCompletedNegotiation?: boolean
+  groupId?: string
 }
 
 export function GroupPropertyCard({
@@ -23,6 +25,8 @@ export function GroupPropertyCard({
   addedAt,
   addedByName,
   onCalculateCosts,
+  hasCompletedNegotiation = false,
+  groupId,
 }: GroupPropertyCardProps) {
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price)
@@ -179,14 +183,31 @@ export function GroupPropertyCard({
         </div>
 
         {/* Action Button */}
-        <Button
-          onClick={() => onCalculateCosts?.(property.id)}
-          className="h-9 w-full bg-primary font-medium text-sm shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md"
-          disabled={isUnavailable}
-        >
-          <Calculator className="mr-1.5 h-4 w-4" />
-          {isUnavailable ? "Niet beschikbaar" : "Kosten berekenen"}
-        </Button>
+        {hasCompletedNegotiation && groupId ? (
+          <div className="space-y-2">
+            <div className="rounded-md bg-green-50 p-2 text-center">
+              <p className="font-medium text-green-800 text-xs">Contract beschikbaar</p>
+            </div>
+            <Button
+              onClick={() => {
+                window.location.href = `/dashboard/groups/${groupId}/properties/${property.id}/contract`
+              }}
+              className="h-9 w-full bg-green-600 font-medium text-sm shadow-sm transition-all duration-200 hover:bg-green-700 hover:shadow-md"
+            >
+              <FileText className="mr-1.5 h-4 w-4" />
+              Ga naar Contract
+            </Button>
+          </div>
+        ) : (
+          <Button
+            onClick={() => onCalculateCosts?.(property.id)}
+            className="h-9 w-full bg-primary font-medium text-sm shadow-sm transition-all duration-200 hover:bg-primary/90 hover:shadow-md"
+            disabled={isUnavailable}
+          >
+            <Calculator className="mr-1.5 h-4 w-4" />
+            {isUnavailable ? "Niet beschikbaar" : "Kosten berekenen"}
+          </Button>
+        )}
       </CardContent>
     </Card>
   )

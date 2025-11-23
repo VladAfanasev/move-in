@@ -8,6 +8,8 @@ type MessageData = {
   status?: string
   users?: string[]
   timestamp?: number
+  sessionId?: string
+  lockedBy?: string
 }
 
 type Controller = ReadableStreamDefaultController<string>

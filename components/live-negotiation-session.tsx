@@ -67,8 +67,6 @@ export function LiveNegotiationSession({
   const [yourPercentage, setYourPercentage] = useState(25)
   const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
   const [sessionLocked, setSessionLocked] = useState(false)
-  const [showCountdown, setShowCountdown] = useState(false)
-  const [countdown, setCountdown] = useState(5)
   const [_sessionStartTime, setSessionStartTime] = useState<string | null>(null)
   const [onlineUsers, setOnlineUsers] = useState<string[]>([])
 
@@ -78,9 +76,9 @@ export function LiveNegotiationSession({
       switch (message.type) {
         case "percentage-update":
           if (message.userId !== currentUser.id && message.userId) {
-            console.log("Received percentage update:", message)
-            setSessionMembers(prev =>
-              prev.map(member =>
+            console.log("🔄 Received percentage update from", message.userId, ":", message.percentage)
+            setSessionMembers(prev => {
+              const updated = prev.map(member =>
                 member.userId === message.userId
                   ? {
                       ...member,
@@ -89,8 +87,12 @@ export function LiveNegotiationSession({
                       lastActivity: Date.now(),
                     }
                   : member,
-              ),
-            )
+              )
+              console.log("📊 Updated session members:", updated)
+              return updated
+            })
+          } else {
+            console.log("🚫 Ignoring percentage update from self or invalid user:", message.userId, "self:", currentUser.id)
           }
           break
 
@@ -142,14 +144,22 @@ export function LiveNegotiationSession({
             setSessionMembers(prev =>
               prev.map(member => ({
                 ...member,
-                isOnline: message.users?.includes(member.userId),
+                isOnline: message.users?.includes(member.userId) ?? false,
               })),
             )
           }
           break
+
+        case "session-locked":
+          // Session has been locked, redirect to contract
+          setSessionLocked(true)
+          setTimeout(() => {
+            window.location.href = `/dashboard/groups/${group.id}/properties/${property.id}/contract`
+          }, 2000)
+          break
       }
     },
-    [currentUser.id],
+    [currentUser.id, group.id, property.id],
   )
 
   // Real-time connection (only when sessionId is available)
@@ -158,6 +168,12 @@ export function LiveNegotiationSession({
     userId: currentUser.id,
     onMessage: handleRealTimeMessage,
   })
+
+  // Debug connection status
+  useEffect(() => {
+    console.log("🔌 SSE Connection status:", realTime.isConnected, "for session:", sessionId, "user:", currentUser.id)
+    console.log("👥 Online users:", realTime.onlineUsers)
+  }, [realTime.isConnected, realTime.onlineUsers, sessionId, currentUser.id])
 
   // Calculate totals
   const totalPercentage = sessionMembers.reduce((sum, member) => sum + member.percentage, 0)
@@ -215,23 +231,30 @@ export function LiveNegotiationSession({
 
       try {
         setIsUpdating(true)
-        console.log("Sending debounced percentage update:", percentage)
+        console.log("📡 Sending debounced percentage update:", percentage, "for session:", sessionId)
+
+        const requestBody = {
+          currentPercentage: percentage,
+          status: "adjusting",
+          isOnline: true,
+        }
+        console.log("📤 Request body:", requestBody)
 
         const response = await fetch(`/api/sessions/${sessionId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            currentPercentage: percentage,
-            status: "adjusting",
-            isOnline: true,
-          }),
+          body: JSON.stringify(requestBody),
         })
 
         if (!response.ok) {
-          console.error("Failed to update percentage:", response.statusText)
+          console.error("❌ Failed to update percentage:", response.status, response.statusText)
+          const errorText = await response.text()
+          console.error("Error details:", errorText)
         } else {
           lastSentPercentageRef.current = percentage
-          console.log(`✅ Successfully broadcast ${percentage}% to other users`)
+          console.log(`✅ Successfully sent ${percentage}% update for session ${sessionId}`)
+          const responseData = await response.json()
+          console.log("📥 Server response:", responseData)
         }
       } catch (error) {
         console.error("Error updating percentage:", error)
@@ -348,29 +371,31 @@ export function LiveNegotiationSession({
   // Auto-lock session when conditions are met
   useEffect(() => {
     if (Math.abs(totalPercentage - 100) < 0.01 && allConfirmed && !sessionLocked) {
-      setShowCountdown(true)
-      const timer = setInterval(() => {
-        setCountdown(prev => {
-          if (prev <= 1) {
-            clearInterval(timer)
-            setSessionLocked(true)
-            setShowCountdown(false)
-            // TODO: Redirect to final overview
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-
-      return () => clearInterval(timer)
+      // Immediately lock and redirect to contract page
+      handleLockNow()
     }
   }, [totalPercentage, allConfirmed, sessionLocked])
 
   // Lock session immediately
-  const handleLockNow = () => {
-    setSessionLocked(true)
-    setShowCountdown(false)
-    // TODO: Redirect to final overview
+  const handleLockNow = async () => {
+    if (!sessionId) return
+
+    try {
+      await fetch(`/api/sessions/${sessionId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "lock" }),
+      })
+
+      setSessionLocked(true)
+
+      // Redirect to contract page after a short delay
+      setTimeout(() => {
+        window.location.href = `/dashboard/groups/${group.id}/properties/${property.id}/contract`
+      }, 2000)
+    } catch (error) {
+      console.error("Error locking session:", error)
+    }
   }
 
   const formatCurrency = (amount: number) => {
@@ -443,6 +468,10 @@ export function LiveNegotiationSession({
           }
 
           // Convert participants to session members
+          console.log("👥 Raw participants from server:", sessionData.participants)
+          console.log("👤 Current user ID:", currentUser.id)
+          console.log("👨‍👩‍👧‍👦 Group members:", members)
+          
           const sessionMembers = sessionData.participants.map((participant: Participant) => ({
             userId: participant.userId,
             name:
@@ -457,6 +486,7 @@ export function LiveNegotiationSession({
             lastActivity: new Date(participant.lastActivity).getTime(),
           }))
 
+          console.log("🏗️ Created session members:", sessionMembers)
           setSessionMembers(sessionMembers)
 
           // Set your percentage
@@ -482,24 +512,6 @@ export function LiveNegotiationSession({
   useEffect(() => {
     loadSession()
   }, [loadSession])
-
-  // Auto-lock countdown
-  if (showCountdown) {
-    return (
-      <Card className="mx-auto max-w-md">
-        <CardContent className="pt-6 text-center">
-          <div className="mb-4">
-            <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-          </div>
-          <h2 className="mb-2 font-semibold text-xl">🎉 ALL MEMBERS CONFIRMED + 100%!</h2>
-          <p className="mb-4 text-muted-foreground">Session will lock in {countdown} seconds...</p>
-          <Button onClick={handleLockNow} size="lg" className="w-full">
-            Lock Session Now
-          </Button>
-        </CardContent>
-      </Card>
-    )
-  }
 
   // Session locked state
   if (sessionLocked) {
@@ -554,8 +566,9 @@ export function LiveNegotiationSession({
                 <div className="mb-2 flex items-center justify-between">
                   <span className="font-semibold">Totale investering</span>
                   <span
-                    className={`font-semibold text-lg ${totalPercentage === 100 ? "text-green-600" : ""
-                      }`}
+                    className={`font-semibold text-lg ${
+                      totalPercentage === 100 ? "text-green-600" : ""
+                    }`}
                   >
                     {totalPercentage % 1 === 0
                       ? `${totalPercentage.toFixed(0)}%`
@@ -564,14 +577,15 @@ export function LiveNegotiationSession({
                 </div>
                 <Progress value={Math.min(100, totalPercentage)} className="h-4" />
                 <div
-                  className={`mt-2 flex items-center space-x-2 ${totalPercentage === 100 && allConfirmed
-                    ? "text-green-600"
-                    : totalPercentage > 100
-                      ? "text-red-600"
-                      : totalPercentage >= 95
-                        ? "text-yellow-600"
-                        : "text-orange-600"
-                    }`}
+                  className={`mt-2 flex items-center space-x-2 ${
+                    totalPercentage === 100 && allConfirmed
+                      ? "text-green-600"
+                      : totalPercentage > 100
+                        ? "text-red-600"
+                        : totalPercentage >= 95
+                          ? "text-yellow-600"
+                          : "text-orange-600"
+                  }`}
                 >
                   {totalPercentage > 100 ? (
                     <AlertCircle className="h-4 w-4" />
@@ -696,13 +710,13 @@ export function LiveNegotiationSession({
                   <div className="rounded-lg bg-green-50 p-4 text-center">
                     <div className="flex items-center justify-center space-x-2 text-green-700">
                       <CheckCircle className="h-5 w-5" />
-                        <span className="font-semibold">Bevestigd</span>
-                      </div>
-                      <div className="mt-2 font-semibold text-2xl">{yourPercentage.toFixed(1)}%</div>
-                      <div className="font-medium">{formatCurrency(yourAmount)}</div>
+                      <span className="font-semibold">Bevestigd</span>
                     </div>
+                    <div className="mt-2 font-semibold text-2xl">{yourPercentage.toFixed(1)}%</div>
+                    <div className="font-medium">{formatCurrency(yourAmount)}</div>
+                  </div>
 
-                    <Button onClick={handleChangeMind} variant="outline" className="w-full">
+                  <Button onClick={handleChangeMind} variant="outline" className="w-full">
                     Verander mijn aandeel
                   </Button>
                 </>
@@ -735,8 +749,9 @@ export function LiveNegotiationSession({
                   return (
                     <div
                       key={member.userId}
-                      className={`rounded-lg p-3 ${isYou ? "border border-primary/20 bg-primary/5" : "bg-muted/50"
-                        }`}
+                      className={`rounded-lg p-3 ${
+                        isYou ? "border border-primary/20 bg-primary/5" : "bg-muted/50"
+                      }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
@@ -753,11 +768,11 @@ export function LiveNegotiationSession({
                             variant={displayStatus === "confirmed" ? "default" : "secondary"}
                             className={displayStatus === "confirmed" ? "bg-green-600" : ""}
                           >
-                            {displayStatus === "confirmed" ? "Confirmed" : "Adjusting"}
+                            {displayStatus === "confirmed" ? "Bevestigd" : "Bezig met aanpassen"}
                           </Badge>
                           {member.activity === "adjusting" && (
                             <span className="animate-pulse text-blue-600 text-xs">
-                              Adjusting now...
+                              Aan het wijzigen...
                             </span>
                           )}
                           {member.lastActivity &&
@@ -767,7 +782,7 @@ export function LiveNegotiationSession({
                             )}
                           {isUpdating && isYou && (
                             <span className="animate-pulse text-orange-600 text-xs">
-                              Sending...
+                              Versturen...
                             </span>
                           )}
                         </div>
