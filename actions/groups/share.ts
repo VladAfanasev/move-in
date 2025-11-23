@@ -18,16 +18,15 @@ export async function generateShareLinkAction(groupId: string) {
     throw new Error("Unauthorized")
   }
 
-  // Check if user is admin/owner of the group
+  // Check if user is a member of the group (any role can invite)
   const membership = await db
     .select({ role: groupMembers.role })
     .from(groupMembers)
     .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
     .limit(1)
 
-  const userRole = membership[0]?.role
-  if (!(userRole && ["admin", "owner"].includes(userRole))) {
-    throw new Error("Insufficient permissions to generate share links")
+  if (!membership[0]) {
+    throw new Error("You must be a member of this group to generate share links")
   }
 
   // Generate shareable link

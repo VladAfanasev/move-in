@@ -140,7 +140,9 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
                 </div>
                 <div>
                   <span className="block font-medium text-primary">Kamers</span>
-                  <span className="font-semibold">{Math.round(Number(property.bedrooms))} kamers</span>
+                  <span className="font-semibold">
+                    {Math.round(Number(property.bedrooms))} kamers
+                  </span>
                 </div>
               </div>
 

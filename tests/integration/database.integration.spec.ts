@@ -369,10 +369,7 @@ test.describe("Database Integration Tests", () => {
         const { data: retrievedProperties, error: retrievalError } = await client
           .from("properties")
           .select("*")
-          .in(
-            "id",
-            insertedProperties?.map(p => p.id),
-          )
+          .in("id", insertedProperties?.map(p => p.id) ?? [])
 
         const retrievalEnd = Date.now()
         const retrievalDuration = retrievalEnd - retrievalStart
