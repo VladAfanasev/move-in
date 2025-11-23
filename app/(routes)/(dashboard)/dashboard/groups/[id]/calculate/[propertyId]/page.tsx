@@ -140,7 +140,7 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
                 </div>
                 <div>
                   <span className="block font-medium text-primary">Kamers</span>
-                  <span className="font-semibold">{property.bedrooms} kamers</span>
+                  <span className="font-semibold">{Math.round(Number(property.bedrooms))} kamers</span>
                 </div>
               </div>
 
@@ -148,7 +148,7 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
               <div className="mt-3 grid grid-cols-3 gap-4 text-sm">
                 <div>
                   <span className="block font-medium text-muted-foreground">Badkamers</span>
-                  <span className="font-semibold">{property.bathrooms}</span>
+                  <span className="font-semibold">{Math.round(Number(property.bathrooms))}</span>
                 </div>
                 <div>
                   <span className="block font-medium text-muted-foreground">Type</span>

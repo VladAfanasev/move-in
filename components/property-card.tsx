@@ -95,13 +95,13 @@ export function PropertyCard({ property, onViewDetails }: PropertyCardProps) {
           {property.bedrooms && (
             <div className="flex items-center text-sm">
               <Bed className="mr-2 h-4 w-4 text-gray-500" />
-              <span>{property.bedrooms} kamers</span>
+              <span>{Math.round(Number(property.bedrooms))} kamers</span>
             </div>
           )}
           {property.bathrooms && (
             <div className="flex items-center text-sm">
               <Bath className="mr-2 h-4 w-4 text-gray-500" />
-              <span>{property.bathrooms} badkamers</span>
+              <span>{Math.round(Number(property.bathrooms))} badkamers</span>
             </div>
           )}
           {property.squareFeet && (
