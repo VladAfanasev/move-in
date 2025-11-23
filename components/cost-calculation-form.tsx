@@ -363,13 +363,11 @@ export function CostCalculationForm({
   const getMemberStatusText = (intention: MemberIntention) => {
     switch (intention.status) {
       case "not_set":
-        return intention.userId === currentUser.id
-          ? "Set your intentions"
-          : "Waiting for intentions"
+        return intention.userId === currentUser.id ? "Geef je schatting" : "Wacht op schatting"
       case "setting":
-        return "Setting intentions..."
+        return "Schatting wordt ingesteld..."
       case "intentions_set":
-        return "Intentions set"
+        return "Klaar"
       case "ready_for_session":
         return "Ready!"
       default:
@@ -398,13 +396,13 @@ export function CostCalculationForm({
       <Dialog open={showIntentionModal} onOpenChange={setShowIntentionModal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Set Your Investment Intentions</DialogTitle>
+            <DialogTitle>Geef je geschatte investering op</DialogTitle>
           </DialogHeader>
 
           <div className="space-y-6">
             <div className="rounded-lg bg-muted/50 p-3 text-sm">
-              <p className="mb-1 font-medium">Total property costs: {formatCurrency(totalCosts)}</p>
-              <p className="text-muted-foreground">Set your minimum and maximum investment range</p>
+              <p className="mb-1 font-medium">Totale investering: {formatCurrency(totalCosts)}</p>
+              <p className="text-muted-foreground">Geef je minimum en maximum investering op</p>
             </div>
 
             <RangeSlider
@@ -419,13 +417,13 @@ export function CostCalculationForm({
             />
 
             <div className="rounded-lg bg-blue-50 p-3 text-blue-800 text-sm">
-              <p className="font-medium">How this works:</p>
+              <p className="font-medium">Hoe dit werkt:</p>
               <ul className="mt-1 list-inside list-disc space-y-1">
                 <li>
-                  Set your <strong>minimum</strong> and <strong>maximum</strong> investment amounts
+                  Geef je <strong>minimum</strong> en <strong>maximum</strong> investering op
                 </li>
-                <li>You can invest anywhere within this range</li>
-                <li>In the live session, you can negotiate within these bounds</li>
+                <li>Je kunt investeren overal binnen deze grenzen</li>
+                <li>Je kunt in de live sessie met elkaar overleggen om tot een 100% te komen</li>
               </ul>
             </div>
 
@@ -435,14 +433,14 @@ export function CostCalculationForm({
                 onClick={() => setShowIntentionModal(false)}
                 className="flex-1"
               >
-                Cancel
+                Annuleren
               </Button>
               <Button
                 onClick={handleSubmitIntention}
                 className="flex-1"
                 disabled={submittingIntention}
               >
-                {submittingIntention ? "Setting..." : "Set Intentions"}
+                {submittingIntention ? "Versturen..." : "Versturen"}
               </Button>
             </div>
           </div>
@@ -598,7 +596,7 @@ export function CostCalculationForm({
                             className="flex items-center space-x-1"
                           >
                             <Settings className="h-4 w-4" />
-                            <span>Set</span>
+                            <span>Opgeven</span>
                           </Button>
                         )}
                       </div>
@@ -666,8 +664,8 @@ export function CostCalculationForm({
                     <div className="flex items-center space-x-2">
                       <AlertCircle className="h-5 w-5 text-yellow-600" />
                       <div className="text-sm text-yellow-800">
-                        Waiting for all members to set their intentions before starting the live
-                        session.
+                        Wachten op alle leden om hun schatting te geven voordat de live sessie
+                        begint.
                       </div>
                     </div>
                   </div>

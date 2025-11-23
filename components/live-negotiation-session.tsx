@@ -76,7 +76,12 @@ export function LiveNegotiationSession({
       switch (message.type) {
         case "percentage-update":
           if (message.userId !== currentUser.id && message.userId) {
-            console.log("🔄 Received percentage update from", message.userId, ":", message.percentage)
+            console.log(
+              "🔄 Received percentage update from",
+              message.userId,
+              ":",
+              message.percentage,
+            )
             setSessionMembers(prev => {
               const updated = prev.map(member =>
                 member.userId === message.userId
@@ -92,7 +97,12 @@ export function LiveNegotiationSession({
               return updated
             })
           } else {
-            console.log("🚫 Ignoring percentage update from self or invalid user:", message.userId, "self:", currentUser.id)
+            console.log(
+              "🚫 Ignoring percentage update from self or invalid user:",
+              message.userId,
+              "self:",
+              currentUser.id,
+            )
           }
           break
 
@@ -171,7 +181,14 @@ export function LiveNegotiationSession({
 
   // Debug connection status
   useEffect(() => {
-    console.log("🔌 SSE Connection status:", realTime.isConnected, "for session:", sessionId, "user:", currentUser.id)
+    console.log(
+      "🔌 SSE Connection status:",
+      realTime.isConnected,
+      "for session:",
+      sessionId,
+      "user:",
+      currentUser.id,
+    )
     console.log("👥 Online users:", realTime.onlineUsers)
   }, [realTime.isConnected, realTime.onlineUsers, sessionId, currentUser.id])
 
@@ -231,7 +248,12 @@ export function LiveNegotiationSession({
 
       try {
         setIsUpdating(true)
-        console.log("📡 Sending debounced percentage update:", percentage, "for session:", sessionId)
+        console.log(
+          "📡 Sending debounced percentage update:",
+          percentage,
+          "for session:",
+          sessionId,
+        )
 
         const requestBody = {
           currentPercentage: percentage,
@@ -368,16 +390,8 @@ export function LiveNegotiationSession({
     }
   }
 
-  // Auto-lock session when conditions are met
-  useEffect(() => {
-    if (Math.abs(totalPercentage - 100) < 0.01 && allConfirmed && !sessionLocked) {
-      // Immediately lock and redirect to contract page
-      handleLockNow()
-    }
-  }, [totalPercentage, allConfirmed, sessionLocked])
-
   // Lock session immediately
-  const handleLockNow = async () => {
+  const handleLockNow = useCallback(async () => {
     if (!sessionId) return
 
     try {
@@ -396,7 +410,15 @@ export function LiveNegotiationSession({
     } catch (error) {
       console.error("Error locking session:", error)
     }
-  }
+  }, [sessionId, group.id, property.id])
+
+  // Auto-lock session when conditions are met
+  useEffect(() => {
+    if (Math.abs(totalPercentage - 100) < 0.01 && allConfirmed && !sessionLocked) {
+      // Immediately lock and redirect to contract page
+      handleLockNow()
+    }
+  }, [totalPercentage, allConfirmed, sessionLocked, handleLockNow])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("nl-NL", {
@@ -471,7 +493,7 @@ export function LiveNegotiationSession({
           console.log("👥 Raw participants from server:", sessionData.participants)
           console.log("👤 Current user ID:", currentUser.id)
           console.log("👨‍👩‍👧‍👦 Group members:", members)
-          
+
           const sessionMembers = sessionData.participants.map((participant: Participant) => ({
             userId: participant.userId,
             name:

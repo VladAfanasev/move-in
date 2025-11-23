@@ -45,18 +45,14 @@ const RangeSlider = React.forwardRef<
     React.useEffect(() => {
       setLocalValue(value)
       if (totalAmount) {
-        // Only update inputs if they're empty or equal to the current calculated value
+        // Always update inputs to match slider value - slider takes priority
         const calculatedMin = Math.round((totalAmount * value[0]) / 100).toString()
         const calculatedMax = Math.round((totalAmount * value[1]) / 100).toString()
 
-        if (!minInput || minInput === Math.round((totalAmount * localValue[0]) / 100).toString()) {
-          setMinInput(calculatedMin)
-        }
-        if (!maxInput || maxInput === Math.round((totalAmount * localValue[1]) / 100).toString()) {
-          setMaxInput(calculatedMax)
-        }
+        setMinInput(calculatedMin)
+        setMaxInput(calculatedMax)
       }
-    }, [value, totalAmount, localValue[0], maxInput, minInput])
+    }, [value, totalAmount])
 
     const handleSliderChange = (newValue: number[]) => {
       setLocalValue(newValue)
@@ -66,16 +62,9 @@ const RangeSlider = React.forwardRef<
         const newMinAmount = Math.round((totalAmount * newValue[0]) / 100).toString()
         const newMaxAmount = Math.round((totalAmount * newValue[1]) / 100).toString()
 
-        // Only update if the input matches the previous calculated value or is empty
-        const currentMinAmount = Math.round((totalAmount * localValue[0]) / 100).toString()
-        const currentMaxAmount = Math.round((totalAmount * localValue[1]) / 100).toString()
-
-        if (!minInput || minInput === currentMinAmount) {
-          setMinInput(newMinAmount)
-        }
-        if (!maxInput || maxInput === currentMaxAmount) {
-          setMaxInput(newMaxAmount)
-        }
+        // Always update input fields when slider is used - slider takes priority
+        setMinInput(newMinAmount)
+        setMaxInput(newMaxAmount)
       }
     }
 
@@ -123,7 +112,7 @@ const RangeSlider = React.forwardRef<
       const amount = Number(minInput.replace(/[^0-9]/g, ""))
       if (Number.isNaN(amount) || amount <= 0) return null
       const percentage = Math.round((amount / totalAmount) * 100)
-      if (percentage < min) return `Minimum ${min}% required`
+      if (percentage < min) return `Minimaal ${min}% benodigd`
       if (percentage > Math.round(localValue[1])) return `Cannot exceed maximum amount`
       return null
     }
@@ -133,8 +122,9 @@ const RangeSlider = React.forwardRef<
       const amount = Number(maxInput.replace(/[^0-9]/g, ""))
       if (Number.isNaN(amount) || amount <= 0) return null
       const percentage = Math.round((amount / totalAmount) * 100)
-      if (percentage > max) return `Maximum ${max}% allowed`
-      if (percentage < Math.round(localValue[0])) return `Cannot be less than minimum amount`
+      if (percentage > max) return `Maximaal ${max}% toegestaan`
+      if (percentage < Math.round(localValue[0]))
+        return `Kan niet lager zijn dan ${Math.round(localValue[0])}%`
       return null
     }
 
@@ -193,7 +183,7 @@ const RangeSlider = React.forwardRef<
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <Label htmlFor={minInputId} className="text-muted-foreground text-xs">
-                Minimum Amount
+                Minimaal bedrag
               </Label>
               <Input
                 id={minInputId}
@@ -207,14 +197,14 @@ const RangeSlider = React.forwardRef<
                   <span className="text-red-600">{getMinInputValidation()}</span>
                 ) : (
                   <span className="text-muted-foreground">
-                    Current: {formatCurrency(Math.round((totalAmount * localValue[0]) / 100))}
+                    {formatCurrency(Math.round((totalAmount * localValue[0]) / 100))}
                   </span>
                 )}
               </div>
             </div>
             <div className="space-y-1">
               <Label htmlFor={maxInputId} className="text-muted-foreground text-xs">
-                Maximum Amount
+                Maximaal bedrag
               </Label>
               <Input
                 id={maxInputId}
@@ -228,7 +218,7 @@ const RangeSlider = React.forwardRef<
                   <span className="text-red-600">{getMaxInputValidation()}</span>
                 ) : (
                   <span className="text-muted-foreground">
-                    Current: {formatCurrency(Math.round((totalAmount * localValue[1]) / 100))}
+                    {formatCurrency(Math.round((totalAmount * localValue[1]) / 100))}
                   </span>
                 )}
               </div>

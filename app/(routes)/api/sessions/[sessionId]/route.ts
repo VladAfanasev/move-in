@@ -67,7 +67,9 @@ export async function PATCH(
 
     // Broadcast the change to other users
     if (currentPercentage !== undefined) {
-      console.log(`📡 Broadcasting percentage update: ${currentPercentage} from ${user.id} to session ${sessionId}`)
+      console.log(
+        `📡 Broadcasting percentage update: ${currentPercentage} from ${user.id} to session ${sessionId}`,
+      )
       const broadcastData = {
         type: "percentage-update",
         userId: user.id,

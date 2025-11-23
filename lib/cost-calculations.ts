@@ -1,5 +1,5 @@
 import type { User } from "@supabase/supabase-js"
-import { and, eq, sql, desc } from "drizzle-orm"
+import { and, desc, eq, sql } from "drizzle-orm"
 import { db } from "@/db/client"
 import {
   costCalculations,
@@ -16,13 +16,17 @@ export interface MemberIntention {
   status: "not_set" | "setting" | "intentions_set" | "ready_for_session"
 }
 
-interface ParticipantRow {
+interface ParticipantRowData {
+  sessionId: string
   userId: string
-  currentPercentage: string | number
-  intendedPercentage?: string | number | null
-  status: string
-  isOnline: string | boolean
-  lastActivity: string | Date
+  currentPercentage: string
+  intendedPercentage: string | null
+  status: "adjusting" | "confirmed" | "locked"
+  confirmedAt: Date | null
+  lastActivity: Date
+  isOnline: string | null
+  createdAt: Date
+  updatedAt: Date
 }
 
 interface SessionUpdateData {
@@ -207,7 +211,9 @@ export async function getOrCreateNegotiationSession(
 }
 
 // Get negotiation session details
-export async function getCompletedNegotiationSession(calculationId: string): Promise<NegotiationSession | null> {
+export async function getCompletedNegotiationSession(
+  calculationId: string,
+): Promise<NegotiationSession | null> {
   const session = await db
     .select()
     .from(negotiationSessions)
@@ -235,12 +241,12 @@ export async function getCompletedNegotiationSession(calculationId: string): Pro
     status: session[0].status as "intention_setting" | "active" | "completed" | "cancelled",
     totalPercentage: Number(session[0].totalPercentage),
     createdAt: session[0].createdAt.toISOString(),
-    participants: participants.map((p: any) => ({
+    participants: participants.map((p: ParticipantRowData) => ({
       userId: p.userId,
       currentPercentage: Number(p.currentPercentage),
       intendedPercentage: p.intendedPercentage ? Number(p.intendedPercentage) : undefined,
       status: p.status as "adjusting" | "confirmed" | "locked",
-      isOnline: p.isOnline === "true" || p.isOnline === true,
+      isOnline: p.isOnline === "true",
       lastActivity: new Date(p.lastActivity),
     })),
   }
@@ -268,12 +274,12 @@ export async function getNegotiationSession(sessionId: string): Promise<Negotiat
     status: session[0].status as "intention_setting" | "active" | "completed" | "cancelled",
     totalPercentage: Number(session[0].totalPercentage),
     createdAt: session[0].createdAt.toISOString(),
-    participants: participants.map((p: any) => ({
+    participants: participants.map((p: ParticipantRowData) => ({
       userId: p.userId,
       currentPercentage: Number(p.currentPercentage),
       intendedPercentage: p.intendedPercentage ? Number(p.intendedPercentage) : undefined,
       status: p.status as "adjusting" | "confirmed" | "locked",
-      isOnline: p.isOnline === "true" || p.isOnline === true,
+      isOnline: p.isOnline === "true",
       lastActivity: new Date(p.lastActivity),
     })),
   }
@@ -342,7 +348,7 @@ async function updateSessionTotalPercentage(sessionId: string) {
     .from(memberSessionParticipation)
     .where(eq(memberSessionParticipation.sessionId, sessionId))
 
-  const total = participants.reduce((sum: number, p: any) => sum + Number(p.currentPercentage), 0)
+  const total = participants.reduce((sum: number, p) => sum + Number(p.currentPercentage), 0)
 
   // Check if all members confirmed and total is 100%
   const allConfirmed = participants.every(p => p.status === "confirmed")

@@ -110,7 +110,7 @@ export function useRealTimeSession({ sessionId, userId, onMessage }: UseRealTime
         }
 
         console.log("📨 Received SSE message:", message.type, "from:", message.userId, message)
-        
+
         // Call the provided message handler
         if (onMessage) {
           onMessage(message)

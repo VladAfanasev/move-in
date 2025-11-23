@@ -3,7 +3,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { CostCalculationForm } from "@/components/cost-calculation-form"
-import { DealContractCard } from "@/components/deal-contract-card"
+// import { DealContractCard } from "@/components/deal-contract-card"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -35,8 +35,12 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
   // Dynamic imports to avoid build-time database connection
   const { getGroupById, getGroupMembers } = await import("@/lib/groups")
   const { getPropertyById } = await import("@/lib/properties")
-  const { getOrCreateCostCalculation, getNegotiationSession, getOrCreateNegotiationSession, getCompletedNegotiationSession } =
-    await import("@/lib/cost-calculations")
+  const {
+    getOrCreateCostCalculation,
+    // getNegotiationSession,
+    // getOrCreateNegotiationSession,
+    getCompletedNegotiationSession,
+  } = await import("@/lib/cost-calculations")
 
   const [group, members, property] = await Promise.all([
     getGroupById(groupId),
@@ -60,19 +64,19 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
 
   // Get or create cost calculation and check for sessions
   const calculation = await getOrCreateCostCalculation(groupId, propertyId, user)
-  
+
   // Check for completed session (for contract display)
   const completedSession = await getCompletedNegotiationSession(calculation.id)
-  
+
   // Always get or create an active session (for cost calculation form)
-  const sessionId = await getOrCreateNegotiationSession(calculation.id, user.id)
-  const activeSession = await getNegotiationSession(sessionId)
+  // const sessionId = await getOrCreateNegotiationSession(calculation.id, user.id)
+  // const activeSession = await getNegotiationSession(sessionId)
 
   // Use completed session data for contract if available, otherwise use active session
-  const sessionForContract = completedSession || activeSession
+  // const sessionForContract = completedSession || activeSession
   const isSessionLocked = !!completedSession
 
-  const totalCosts = Number(calculation.totalCosts)
+  // const totalCosts = Number(calculation.totalCosts)
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("nl-NL", {
@@ -168,7 +172,7 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
           isSessionLocked={isSessionLocked}
         />
 
-        {/* Deal Contract Card */}
+        {/* Deal Contract Card
         <DealContractCard
           property={property}
           group={group}
@@ -177,7 +181,7 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
           totalCosts={totalCosts}
           isSessionLocked={isSessionLocked}
           sessionLockedAt={isSessionLocked ? completedSession?.createdAt : undefined}
-        />
+        /> */}
       </div>
     </div>
   )

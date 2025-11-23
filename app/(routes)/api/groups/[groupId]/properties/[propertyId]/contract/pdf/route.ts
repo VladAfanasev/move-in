@@ -1,11 +1,7 @@
 import { and, eq } from "drizzle-orm"
 import { type NextRequest, NextResponse } from "next/server"
 import { db } from "@/db/client"
-import {
-  costCalculations,
-  memberSessionParticipation,
-  negotiationSessions,
-} from "@/db/schema/cost-calculations"
+import { costCalculations } from "@/db/schema/cost-calculations"
 import { createClient } from "@/lib/supabase/server"
 
 // Simple PDF generation - in production, you'd use a proper PDF library like puppeteer or jsPDF
@@ -89,24 +85,45 @@ export async function POST(
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Investeringscontract - ${property.address}</title>
           <style>
-            body { font-family: Arial, sans-serif; margin: 40px; color: #333; line-height: 1.6; }
-            .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #ccc; padding-bottom: 20px; }
-            .section { margin-bottom: 30px; }
+            * { box-sizing: border-box; }
+            body { 
+              font-family: Arial, sans-serif; 
+              margin: 0; 
+              padding: 60px 0; 
+              color: #333; 
+              line-height: 1.6; 
+              max-width: 800px;
+              margin: 0 auto;
+            }
+            .header { 
+              text-align: center; 
+              margin-bottom: 40px; 
+              padding-bottom: 20px; 
+              border-bottom: 2px solid #ccc; 
+            }
+            .header h1 { margin: 0 0 10px 0; font-size: 28px; }
+            .header h2 { margin: 0 0 15px 0; font-size: 20px; color: #555; }
+            .header p { margin: 0; font-size: 14px; }
+            .section { margin-bottom: 30px; padding: 0 20px; }
             .participants { margin-top: 20px; }
-            .participant { margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; }
+            .participant { margin-bottom: 15px; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
             .signature-line { border-bottom: 1px solid #000; width: 200px; display: inline-block; margin-left: 20px; }
-            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #666; padding: 0 20px; }
             table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
+            th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+            th { background-color: #f2f2f2; font-weight: bold; }
             .amount { font-weight: bold; }
+            h3 { color: #2563eb; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+            @media print {
+              body { padding: 40px 60px; }
+              .section { padding: 0 10px; }
+            }
           </style>
         </head>
         <body>
           <div class="header">
             <h1>INVESTERINGSCONTRACT</h1>
             <h2>${property.address}, ${property.zipCode} ${property.city}</h2>
-            <p><strong>Groep:</strong> ${group.name}</p>
             <p><strong>Datum:</strong> ${formatDate(new Date())}</p>
           </div>
 
@@ -115,7 +132,7 @@ export async function POST(
             <table>
               <tr><td><strong>Adres</strong></td><td>${property.address}, ${property.zipCode} ${property.city}</td></tr>
               <tr><td><strong>Vraagprijs</strong></td><td>${formatCurrency(property.price)}</td></tr>
-              <tr><td><strong>Totale Investering</strong></td><td>${formatCurrency(calculation[0].totalCosts)}</td></tr>
+              <tr><td><strong>Aankoopprijs</strong></td><td>${formatCurrency(calculation[0].totalCosts)}</td></tr>
               <tr><td><strong>Type</strong></td><td>${property.propertyType === "house" ? "Huis" : "Appartement"}</td></tr>
               <tr><td><strong>Kamers</strong></td><td>${property.bedrooms || "N/A"}</td></tr>
               <tr><td><strong>Oppervlakte</strong></td><td>${property.squareFeet || "N/A"} m²</td></tr>
@@ -125,7 +142,7 @@ export async function POST(
           <div class="section">
             <h3>2. KOSTEN OVERZICHT</h3>
             <table>
-              <tr><td><strong>Aankoopprijs</strong></td><td>${formatCurrency(calculation[0].purchasePrice)}</td></tr>
+              <tr><td><strong>Vraagprijs</strong></td><td>${formatCurrency(calculation[0].purchasePrice)}</td></tr>
               <tr><td><strong>Notaris kosten</strong></td><td>${formatCurrency(calculation[0].notaryFees || "0")}</td></tr>
               <tr><td><strong>Overdrachtsbelasting</strong></td><td>${formatCurrency(calculation[0].transferTax || "0")}</td></tr>
               <tr><td><strong>Renovatie kosten</strong></td><td>${formatCurrency(calculation[0].renovationCosts || "0")}</td></tr>
@@ -174,7 +191,6 @@ export async function POST(
               <li>Eigendomsrechten worden verdeeld volgens de investeringspercentages</li>
               <li>Alle belangrijke beslissingen betreffende het eigendom vereisen meerderheidsgoedkeuring</li>
               <li>Verkoop van het eigendom vereist unanime goedkeuring van alle investeerders</li>
-              <li>Dit contract wordt beheerst door Nederlands recht</li>
             </ul>
           </div>
 

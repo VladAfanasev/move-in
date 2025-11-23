@@ -185,9 +185,6 @@ export function GroupPropertyCard({
         {/* Action Button */}
         {hasCompletedNegotiation && groupId ? (
           <div className="space-y-2">
-            <div className="rounded-md bg-green-50 p-2 text-center">
-              <p className="font-medium text-green-800 text-xs">Contract beschikbaar</p>
-            </div>
             <Button
               onClick={() => {
                 window.location.href = `/dashboard/groups/${groupId}/properties/${property.id}/contract`

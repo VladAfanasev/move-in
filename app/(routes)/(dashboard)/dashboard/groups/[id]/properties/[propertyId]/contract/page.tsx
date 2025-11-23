@@ -1,9 +1,8 @@
-import { ArrowLeft, Calculator, FileText } from "lucide-react"
+import { ArrowLeft, FileText } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
 import { ContractDownloadButton } from "@/components/contract-download-button"
-import { NegotiationOverview } from "@/components/negotiation-overview"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -35,8 +34,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
   // Dynamic imports to avoid build-time database connection
   const { getGroupById, getGroupMembers } = await import("@/lib/groups")
   const { getPropertyById } = await import("@/lib/properties")
-  const { getOrCreateCostCalculation, getNegotiationSession, getOrCreateNegotiationSession } =
-    await import("@/lib/cost-calculations")
+  const { getOrCreateCostCalculation } = await import("@/lib/cost-calculations")
 
   const [group, members, property] = await Promise.all([
     getGroupById(groupId),
@@ -60,7 +58,7 @@ export default async function ContractPage({ params }: ContractPageProps) {
 
   // Get cost calculation and session
   const calculation = await getOrCreateCostCalculation(groupId, propertyId, user)
-  
+
   // Find completed session for contract display
   const { getCompletedNegotiationSession } = await import("@/lib/cost-calculations")
   const session = await getCompletedNegotiationSession(calculation.id)
@@ -161,57 +159,158 @@ export default async function ContractPage({ params }: ContractPageProps) {
           </div>
         </Card>
 
-        {/* Contract Instructions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Instructies</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="rounded-lg bg-blue-50 p-4">
-                <h3 className="mb-2 font-semibold text-blue-900">Volgende stappen:</h3>
-                <ol className="space-y-2 text-blue-800 text-sm">
-                  <li>1. Download het contract PDF</li>
-                  <li>2. Print het document</li>
-                  <li>3. Elke groepslid ondertekent op de aangewezen plaatsen</li>
-                  <li>4. Bewaar een kopie voor uw administratie</li>
-                  <li>5. De originele documenten worden gebruikt voor de notaris</li>
-                </ol>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-12">
+          {/* Contract Overview */}
+          <Card className="md:col-span-8">
+            <CardHeader>
+              <CardTitle>Contract Overzicht</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* All Costs Section */}
+                <div>
+                  <h3 className="mb-4 font-semibold text-lg">Alle Kosten</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span>Koopprijs</span>
+                      <span className="font-medium">{formatCurrency(Number(property.price))}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Notariskosten</span>
+                      <span className="font-medium">{formatCurrency(2500)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Overdrachtsbelasting (2%)</span>
+                      <span className="font-medium">
+                        {formatCurrency(Number(property.price) * 0.02)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Renovatiekosten</span>
+                      <span className="font-medium">
+                        {formatCurrency(Number(calculation.renovationCosts) || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Makelaarkosten</span>
+                      <span className="font-medium">
+                        {formatCurrency(Number(calculation.brokerFees) || 0)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Inspecties</span>
+                      <span className="font-medium">
+                        {formatCurrency(Number(calculation.inspectionCosts) || 750)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Overige kosten</span>
+                      <span className="font-medium">
+                        {formatCurrency(Number(calculation.otherCosts) || 0)}
+                      </span>
+                    </div>
+                    <div className="border-t pt-3">
+                      <div className="flex justify-between font-semibold text-lg">
+                        <span>Totale kosten</span>
+                        <span>{formatCurrency(totalCosts)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-        {/* Navigation back to calculate */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-semibold">Wilt u de kostenberekening bekijken?</h3>
-                <p className="text-muted-foreground text-sm">
-                  Ga terug naar de kostenpagina om de volledige berekening en deal details te zien.
-                </p>
-              </div>
-              <Link href={`/dashboard/groups/${groupId}/calculate/${propertyId}`}>
-                <Button variant="outline">
-                  <Calculator className="mr-2 h-4 w-4" />
-                  Ga naar Kosten Berekening
-                </Button>
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
+                {/* Investment Overview Section */}
+                <div>
+                  <h3 className="mb-4 font-semibold text-lg">Investering Overzicht</h3>
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="pb-2 text-left">Naam</th>
+                          <th className="pb-2 text-right">Percentage</th>
+                          <th className="pb-2 text-right">Bedrag</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {session.participants.map(participant => {
+                          const member = members.find(m => m.userId === participant.userId)
+                          const amount = Math.round(
+                            (totalCosts * participant.currentPercentage) / 100,
+                          )
+                          return (
+                            <tr key={participant.userId} className="border-b">
+                              <td className="py-2">
+                                <div>
+                                  <div className="font-medium">
+                                    {member?.fullName ||
+                                      member?.email?.split("@")[0] ||
+                                      "Unknown Member"}
+                                  </div>
+                                  <div className="text-muted-foreground text-sm">
+                                    {member?.email}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-2 text-right font-semibold">
+                                {participant.currentPercentage.toFixed(1)}%
+                              </td>
+                              <td className="py-2 text-right font-semibold">
+                                {formatCurrency(amount)}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
 
-        {/* Investment Overview */}
-        <NegotiationOverview
-          property={property}
-          group={group}
-          members={members}
-          participants={session.participants}
-          totalCosts={totalCosts}
-          isSessionLocked={true}
-          sessionLockedAt={session.createdAt}
-        />
+                    {/* Totals Row */}
+                    <div className="mt-4 border-t pt-4">
+                      <div className="flex justify-between font-semibold text-lg">
+                        <span>Totaal</span>
+                        <div className="flex space-x-8">
+                          <span>
+                            {session.participants
+                              .reduce((sum, p) => sum + p.currentPercentage, 0)
+                              .toFixed(1)}
+                            %
+                          </span>
+                          <span>
+                            {formatCurrency(
+                              session.participants.reduce(
+                                (sum, p) =>
+                                  sum + Math.round((totalCosts * p.currentPercentage) / 100),
+                                0,
+                              ),
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          {/* Contract Instructions */}
+          <Card className="md:col-span-4">
+            <CardHeader>
+              <CardTitle>Instructies</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="rounded-lg bg-blue-50 p-4">
+                  <h3 className="mb-2 font-semibold text-blue-900">Volgende stappen:</h3>
+                  <ol className="space-y-2 text-blue-800 text-sm">
+                    <li>1. Download het contract PDF</li>
+                    <li>2. Print het document</li>
+                    <li>3. Elke groepslid ondertekent op de aangewezen plaatsen</li>
+                    <li>4. Bewaar een kopie voor uw administratie</li>
+                    <li>5. De originele documenten worden gebruikt voor de notaris</li>
+                  </ol>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )
