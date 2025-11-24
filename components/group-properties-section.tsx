@@ -3,6 +3,7 @@
 import { Home, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useEffect, useState } from "react"
 import { GroupPropertyCard } from "@/components/group-property-card"
 import { Button } from "@/components/ui/button"
 
@@ -63,6 +64,36 @@ export function GroupPropertiesSection({
   onCalculateCosts,
 }: GroupPropertiesSectionProps) {
   const router = useRouter()
+  const [completedNegotiations, setCompletedNegotiations] = useState<Set<string>>(new Set())
+
+  // Check for completed negotiations on mount
+  useEffect(() => {
+    const checkCompletedNegotiations = async () => {
+      try {
+        const completedPropertyIds = new Set<string>()
+
+        for (const groupProperty of groupProperties) {
+          const response = await fetch(
+            `/api/groups/${groupId}/properties/${groupProperty.property.id}/negotiation-status`,
+          )
+          if (response.ok) {
+            const data = await response.json()
+            if (data.isCompleted) {
+              completedPropertyIds.add(groupProperty.property.id)
+            }
+          }
+        }
+
+        setCompletedNegotiations(completedPropertyIds)
+      } catch (error) {
+        console.error("Error checking negotiation status:", error)
+      }
+    }
+
+    if (groupProperties.length > 0) {
+      checkCompletedNegotiations()
+    }
+  }, [groupProperties, groupId])
 
   const handleCalculateCosts = (propertyId: string) => {
     if (onCalculateCosts) {
@@ -113,6 +144,8 @@ export function GroupPropertiesSection({
               addedAt={groupProperty.addedAt}
               addedByName={groupProperty.addedByName}
               onCalculateCosts={handleCalculateCosts}
+              hasCompletedNegotiation={completedNegotiations.has(groupProperty.property.id)}
+              groupId={groupId}
             />
           ))}
         </div>

@@ -120,7 +120,7 @@ export const negotiationSessions = pgTable("negotiation_sessions", {
 
   status: negotiationSessionStatus("status").notNull().default("intention_setting"),
   totalPercentage: decimal("total_percentage", { precision: 5, scale: 2 }).default("0"),
-  
+
   // Session locks when all members confirm and total = 100%
   lockedAt: timestamp("locked_at"),
   lockedBy: uuid("locked_by").references(() => profiles.id),
@@ -131,7 +131,7 @@ export const negotiationSessions = pgTable("negotiation_sessions", {
 
 // Member participation in live negotiation sessions
 export const memberSessionParticipation = pgTable(
-  "member_session_participation", 
+  "member_session_participation",
   {
     sessionId: uuid("session_id")
       .references(() => negotiationSessions.id, { onDelete: "cascade" })
@@ -141,9 +141,11 @@ export const memberSessionParticipation = pgTable(
       .notNull(),
 
     // Investment details
-    currentPercentage: decimal("current_percentage", { precision: 5, scale: 2 }).notNull().default("0"),
+    currentPercentage: decimal("current_percentage", { precision: 5, scale: 2 })
+      .notNull()
+      .default("0"),
     intendedPercentage: decimal("intended_percentage", { precision: 5, scale: 2 }),
-    
+
     // Session status
     status: memberSessionStatus("status").notNull().default("adjusting"),
     confirmedAt: timestamp("confirmed_at"),

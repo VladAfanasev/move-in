@@ -23,7 +23,7 @@ const AVATAR_COLORS = [
  * Generate initials from a full name
  */
 export function getInitials(name: string): string {
-  if (!name) return "?"
+  if (!name?.trim()) return "?"
 
   const words = name.trim().split(/\s+/)
 

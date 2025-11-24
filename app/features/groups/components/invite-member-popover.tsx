@@ -38,10 +38,32 @@ export function InviteMemberPopover({ children, groupId }: InviteMemberPopoverPr
 
   const copyToClipboard = async (text: string) => {
     try {
-      await navigator.clipboard.writeText(text)
-      setCopied(true)
-      toast.success("Link gekopieerd naar klembord")
-      setTimeout(() => setCopied(false), 2000)
+      if (navigator?.clipboard) {
+        await navigator.clipboard.writeText(text)
+        setCopied(true)
+        toast.success("Link gekopieerd naar klembord")
+        setTimeout(() => setCopied(false), 2000)
+      } else {
+        // Fallback for older browsers or server-side rendering
+        const textArea = document.createElement("textarea")
+        textArea.value = text
+        document.body.appendChild(textArea)
+        textArea.focus()
+        textArea.select()
+        try {
+          const successful = document.execCommand("copy")
+          if (successful) {
+            setCopied(true)
+            toast.success("Link gekopieerd naar klembord")
+            setTimeout(() => setCopied(false), 2000)
+          } else {
+            toast.error("Kon niet kopiëren naar klembord")
+          }
+        } catch (_error) {
+          toast.error("Kon niet kopiëren naar klembord")
+        }
+        document.body.removeChild(textArea)
+      }
     } catch (_error) {
       toast.error("Kon niet kopiëren naar klembord")
     }
