@@ -486,7 +486,7 @@ export function LiveNegotiationSession({
             currentPercentage: number
             status: string
             isOnline: boolean
-            lastActivity: string
+            lastActivity: string | number | Date
           }
 
           // Convert participants to session members
@@ -505,7 +505,14 @@ export function LiveNegotiationSession({
             percentage: participant.currentPercentage,
             status: participant.status,
             isOnline: participant.isOnline,
-            lastActivity: new Date(participant.lastActivity).getTime(),
+            lastActivity:
+              participant.lastActivity instanceof Date
+                ? participant.lastActivity.getTime()
+                : typeof participant.lastActivity === "string"
+                  ? new Date(participant.lastActivity).getTime()
+                  : typeof participant.lastActivity === "number"
+                    ? participant.lastActivity
+                    : Date.now(),
           }))
 
           console.log("🏗️ Created session members:", sessionMembers)

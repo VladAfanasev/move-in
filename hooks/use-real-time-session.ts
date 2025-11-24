@@ -143,7 +143,7 @@ export function useRealTimeSession({ sessionId, userId, onMessage }: UseRealTime
       eventSource.close()
 
       // Exponential backoff for reconnection
-      const delay = Math.min(baseReconnectDelay * 2 ** reconnectAttempts, 30000)
+      const delay = Math.max(1, Math.min(baseReconnectDelay * 2 ** reconnectAttempts, 30000))
 
       console.log(
         `SSE connection failed, retrying in ${delay}ms (attempt ${reconnectAttempts + 1})`,

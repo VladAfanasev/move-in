@@ -15,50 +15,76 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: "html",
-  /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
-  use: {
-    /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: "http://localhost:3000",
-
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
-  },
 
   /* Configure projects for major browsers */
   projects: [
+    // Unit tests - no browser needed, no web server
     {
       name: "unit",
       testMatch: /.*\.unit\.spec\.ts$/,
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        // No browser context needed for unit tests
+      },
     },
+    // Integration tests - no browser needed, no web server
+    {
+      name: "integration",
+      testMatch: /.*\.integration\.spec\.ts$/,
+      use: {
+        // No browser context needed for integration tests
+      },
+    },
+    // E2E tests - need browser and web server
     {
       name: "chromium",
       testMatch: /.*\.e2e\.spec\.ts$/,
-      use: { ...devices["Desktop Chrome"] },
+      use: {
+        ...devices["Desktop Chrome"],
+        /* Base URL to use in actions like `await page.goto('/')`. */
+        baseURL: "http://localhost:3000",
+        /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
+        trace: "on-first-retry",
+      },
     },
 
     {
       name: "firefox",
       testMatch: /.*\.e2e\.spec\.ts$/,
-      use: { ...devices["Desktop Firefox"] },
+      use: {
+        ...devices["Desktop Firefox"],
+        baseURL: "http://localhost:3000",
+        trace: "on-first-retry",
+      },
     },
 
     {
       name: "webkit",
       testMatch: /.*\.e2e\.spec\.ts$/,
-      use: { ...devices["Desktop Safari"] },
+      use: {
+        ...devices["Desktop Safari"],
+        baseURL: "http://localhost:3000",
+        trace: "on-first-retry",
+      },
     },
 
     /* Test against mobile viewports. */
     {
       name: "Mobile Chrome",
       testMatch: /.*\.e2e\.spec\.ts$/,
-      use: { ...devices["Pixel 5"] },
+      use: {
+        ...devices["Pixel 5"],
+        baseURL: "http://localhost:3000",
+        trace: "on-first-retry",
+      },
     },
     {
       name: "Mobile Safari",
       testMatch: /.*\.e2e\.spec\.ts$/,
-      use: { ...devices["iPhone 12"] },
+      use: {
+        ...devices["iPhone 12"],
+        baseURL: "http://localhost:3000",
+        trace: "on-first-retry",
+      },
     },
 
     /* Test against branded browsers. */
@@ -72,10 +98,13 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: "bun dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-  },
+  /* Run your local dev server before starting the E2E tests */
+  webServer:
+    process.env.TEST_TYPE === "e2e"
+      ? {
+          command: "bun dev",
+          url: "http://localhost:3000",
+          reuseExistingServer: !process.env.CI,
+        }
+      : undefined,
 })
