@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { useAuth } from "@/app/auth/auth-provider"
 import { LoginForm } from "@/components/login-form"
@@ -8,12 +8,14 @@ import { LoginForm } from "@/components/login-form"
 export default function Login() {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirectTo")
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/dashboard")
+      router.replace(redirectTo || "/dashboard")
     }
-  }, [user, loading, router])
+  }, [user, loading, router, redirectTo])
 
   if (loading) {
     return (
@@ -34,7 +36,7 @@ export default function Login() {
   return (
     <div className="flex min-h-svh w-full items-center justify-center p-6 md:p-10">
       <div className="w-full max-w-sm">
-        <LoginForm />
+        <LoginForm redirectTo={redirectTo} />
       </div>
     </div>
   )

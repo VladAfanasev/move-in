@@ -1,7 +1,8 @@
 "use client"
 
 import { Users } from "lucide-react"
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
+import { getJoinRequestsAction } from "@/actions/groups/join-request"
 import { CompactMemberList } from "@/components/compact-member-list"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -16,6 +17,17 @@ interface Member {
   avatarUrl?: string | null
   role: "owner" | "admin" | "member"
   status: "pending" | "active" | "left" | "removed"
+}
+
+interface JoinRequest {
+  id: string
+  userId: string
+  message: string | null
+  requestedAt: Date
+  expiresAt: Date
+  userFullName: string | null
+  userEmail: string | null
+  userAvatarUrl: string | null
 }
 
 interface MemberAvatarStackProps {
@@ -38,6 +50,44 @@ export function MemberAvatarStack({
   onMemberUpdate,
 }: MemberAvatarStackProps) {
   const [open, setOpen] = useState(false)
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0)
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([])
+  const [loadingRequests, setLoadingRequests] = useState(false)
+
+  // Check if user can view requests (owner/admin)
+  const canViewRequests = (currentUserRole === "owner" || currentUserRole === "admin") && groupId
+
+  // Load pending requests and count
+  const loadJoinRequests = useCallback(async () => {
+    if (!(canViewRequests && groupId)) return
+
+    try {
+      setLoadingRequests(true)
+      const requests = await getJoinRequestsAction(groupId)
+      setJoinRequests(requests)
+      setPendingRequestsCount(requests.length)
+    } catch (error) {
+      // Silently handle - user might not have permission
+      console.error("Error loading join requests:", error)
+      setJoinRequests([])
+      setPendingRequestsCount(0)
+    } finally {
+      setLoadingRequests(false)
+    }
+  }, [canViewRequests, groupId])
+
+  useEffect(() => {
+    if (canViewRequests) {
+      loadJoinRequests()
+    }
+  }, [loadJoinRequests, canViewRequests])
+
+  // Refresh data when member updates occur
+  useEffect(() => {
+    if (canViewRequests && onMemberUpdate) {
+      loadJoinRequests()
+    }
+  }, [loadJoinRequests, onMemberUpdate, canViewRequests])
 
   // Filter to only show active members
   const activeMembers = members.filter(member => member.status === "active")
@@ -72,53 +122,64 @@ export function MemberAvatarStack({
             className,
           )}
         >
-          <div className="-space-x-1 flex">
-            {visibleMembers.map(member => {
-              const { initials, colorClass, avatarUrl } = getAvatarProps(
-                member.userId,
-                member.fullName,
-                member.avatarUrl,
-              )
+          <div className="flex items-center space-x-2">
+            <div className="-space-x-1 flex">
+              {visibleMembers.map(member => {
+                const { initials, colorClass, avatarUrl } = getAvatarProps(
+                  member.userId,
+                  member.fullName,
+                  member.avatarUrl,
+                )
 
-              return (
+                return (
+                  <Avatar
+                    key={member.userId}
+                    className={cn(
+                      sizeClasses[size],
+                      borderClasses[size],
+                      "shadow-sm ring-background",
+                      // Add special styling for owner
+                      member.role === "owner" && "ring-yellow-400",
+                    )}
+                  >
+                    <AvatarImage src={avatarUrl} alt={member.fullName || ""} />
+                    <AvatarFallback
+                      className="font-bold text-white"
+                      style={{
+                        backgroundColor: colorClass,
+                        textShadow: "0 1px 2px rgba(0, 0, 0, 0.8)",
+                      }}
+                    >
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                )
+              })}
+
+              {remainingCount > 0 && (
                 <Avatar
-                  key={member.userId}
                   className={cn(
                     sizeClasses[size],
                     borderClasses[size],
                     "shadow-sm ring-background",
-                    // Add special styling for owner
-                    member.role === "owner" && "ring-yellow-400",
                   )}
                 >
-                  <AvatarImage src={avatarUrl} alt={member.fullName || ""} />
                   <AvatarFallback
                     className="font-bold text-white"
                     style={{
-                      backgroundColor: colorClass,
+                      backgroundColor: "#475569",
                       textShadow: "0 1px 2px rgba(0, 0, 0, 0.8)",
                     }}
                   >
-                    {initials}
+                    +{remainingCount}
                   </AvatarFallback>
                 </Avatar>
-              )
-            })}
+              )}
+            </div>
 
-            {remainingCount > 0 && (
-              <Avatar
-                className={cn(sizeClasses[size], borderClasses[size], "shadow-sm ring-background")}
-              >
-                <AvatarFallback
-                  className="font-bold text-white"
-                  style={{
-                    backgroundColor: "#475569",
-                    textShadow: "0 1px 2px rgba(0, 0, 0, 0.8)",
-                  }}
-                >
-                  +{remainingCount}
-                </AvatarFallback>
-              </Avatar>
+            {/* Pending requests indicator */}
+            {pendingRequestsCount > 0 && (
+              <div className="h-3 w-3 animate-pulse rounded-full bg-red-500"></div>
             )}
           </div>
         </Button>
@@ -136,7 +197,12 @@ export function MemberAvatarStack({
             members={members}
             currentUserRole={currentUserRole}
             groupId={groupId}
-            onMemberUpdate={onMemberUpdate}
+            joinRequests={joinRequests}
+            loadingRequests={loadingRequests}
+            onMemberUpdate={() => {
+              onMemberUpdate?.()
+              loadJoinRequests()
+            }}
           />
         </div>
       </PopoverContent>

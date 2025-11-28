@@ -43,6 +43,13 @@
       "when": 1732201500000,
       "tag": "0005_add_cost_calculations",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1764347259751,
+      "tag": "0006_breezy_reaper",
+      "breakpoints": true
     }
   ]
 }

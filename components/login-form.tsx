@@ -10,7 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 
-export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRef<"div">) {
+interface LoginFormProps extends React.ComponentPropsWithoutRef<"div"> {
+  redirectTo?: string | null
+}
+
+export function LoginForm({ className, redirectTo, ...props }: LoginFormProps) {
   const emailId = useId()
   const passwordId = useId()
   const [error, setError] = useState<string | null>(null)
@@ -22,12 +26,16 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     setError(null)
     const formData = new FormData(e.currentTarget)
 
+    if (redirectTo) {
+      formData.append("redirectTo", redirectTo)
+    }
+
     startTransition(async () => {
       const result = await signIn(formData)
       if (result?.error) {
         setError(result.error)
       } else if (result?.success) {
-        router.push("/dashboard")
+        router.push(redirectTo || "/dashboard")
       }
     })
   }
@@ -65,7 +73,14 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
             </div>
             <div className="mt-4 text-center text-sm">
               Don&apos;t have an account?{" "}
-              <Link href="/register" className="underline underline-offset-4">
+              <Link
+                href={
+                  redirectTo
+                    ? `/register?redirectTo=${encodeURIComponent(redirectTo)}`
+                    : "/register"
+                }
+                className="underline underline-offset-4"
+              >
                 Sign up
               </Link>
             </div>

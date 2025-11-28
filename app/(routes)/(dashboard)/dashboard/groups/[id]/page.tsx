@@ -128,7 +128,7 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
                 onMemberUpdate={handleMemberUpdate}
               />
 
-              <InviteMemberPopover groupId={group.id}>
+              <InviteMemberPopover groupId={group.id} groupName={group.name}>
                 <Button variant="outline">
                   <Users className="mr-2 h-4 w-4" />
                   Lid uitnodigen
@@ -146,11 +146,13 @@ const GroupDetailPage = async ({ params }: GroupDetailPageProps) => {
           </div>
         </div>
 
-        <GroupPropertiesSection
-          groupProperties={groupProperties}
-          members={members}
-          groupId={group.id}
-        />
+        <div className="space-y-6">
+          <GroupPropertiesSection
+            groupProperties={groupProperties}
+            members={members}
+            groupId={group.id}
+          />
+        </div>
       </div>
     </div>
   )

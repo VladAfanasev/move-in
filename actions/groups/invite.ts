@@ -2,6 +2,7 @@
 
 import { randomBytes } from "crypto"
 import { and, eq } from "drizzle-orm"
+import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 import { db } from "@/db/client"
 import { buyingGroups, groupInvitations, groupMembers, profiles } from "@/db/schema"
@@ -102,7 +103,12 @@ export async function inviteMemberAction(groupId: string, email: string) {
       .limit(1),
   ])
 
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+  // Get base URL from request headers for dynamic domain detection
+  const headersList = await headers()
+  const host = headersList.get("host")
+  const protocol =
+    headersList.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https")
+  const baseUrl = `${protocol}://${host}`
   const inviteUrl = `${baseUrl}/dashboard/groups/invite/${token}`
 
   // Prepare email parameters

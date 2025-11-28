@@ -1,6 +1,6 @@
 "use client"
 
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { useEffect } from "react"
 import { useAuth } from "@/app/auth/auth-provider"
 import { RegisterForm } from "@/components/register-form"
@@ -8,12 +8,14 @@ import { RegisterForm } from "@/components/register-form"
 export default function RegisterPage() {
   const { user, loading } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get("redirectTo")
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/dashboard")
+      router.replace(redirectTo || "/dashboard")
     }
-  }, [user, loading, router])
+  }, [user, loading, router, redirectTo])
 
   if (loading) {
     return (
@@ -33,7 +35,7 @@ export default function RegisterPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center p-6">
-      <RegisterForm className="w-full max-w-md" />
+      <RegisterForm className="w-full max-w-md" redirectTo={redirectTo} />
     </div>
   )
 }

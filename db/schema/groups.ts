@@ -33,6 +33,13 @@ export const invitationStatus = pgEnum("invitation_status", [
   "cancelled",
 ])
 
+export const joinRequestStatus = pgEnum("join_request_status", [
+  "pending",
+  "approved",
+  "rejected",
+  "expired",
+])
+
 // Buying groups for shared property purchases
 export const buyingGroups = pgTable("buying_groups", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -117,3 +124,23 @@ export const groupProperties = pgTable(
     pk: primaryKey({ columns: [table.groupId, table.propertyId] }),
   }),
 )
+
+// Group join requests for QR code based joining with approval workflow
+export const groupJoinRequests = pgTable("group_join_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  groupId: uuid("group_id")
+    .references(() => buyingGroups.id, { onDelete: "cascade" })
+    .notNull(),
+  userId: uuid("user_id")
+    .references(() => profiles.id, { onDelete: "cascade" })
+    .notNull(),
+  requestToken: varchar("request_token", { length: 64 }).notNull().unique(),
+  status: joinRequestStatus("status").notNull().default("pending"),
+  message: text("message"), // Optional message from requester
+  rejectionReason: text("rejection_reason"), // Optional reason for rejection
+  requestedAt: timestamp("requested_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
+  processedBy: uuid("processed_by").references(() => profiles.id),
+  expiresAt: timestamp("expires_at").notNull(),
+  metadata: jsonb("metadata"),
+})
