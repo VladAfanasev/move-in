@@ -1,10 +1,9 @@
 "use client"
 
-import { Building2, ChevronsUpDown, Home, LogOut, Users } from "lucide-react"
+import { Building2, ChevronsUpDown, Home, LogOut, User2, Users } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { signOut } from "@/app/auth/actions"
-import { useAuth } from "@/app/auth/auth-provider"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -25,6 +24,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useProfile } from "@/hooks/use-profile"
 
 const items = [
   {
@@ -51,7 +51,7 @@ const items = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { user } = useAuth()
+  const { user, getDisplayName, getInitials } = useProfile()
 
   const handleSignOut = async () => {
     try {
@@ -112,14 +112,10 @@ export function AppSidebar() {
                   className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                 >
                   <Avatar className="h-8 w-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg">
-                      {user?.email?.charAt(0).toUpperCase() || "U"}
-                    </AvatarFallback>
+                    <AvatarFallback className="rounded-lg">{getInitials()}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-semibold">
-                      {user?.email?.split("@")[0] || "User"}
-                    </span>
+                    <span className="truncate font-semibold">{getDisplayName()}</span>
                     <span className="truncate text-xs">{user?.email}</span>
                   </div>
                   <ChevronsUpDown className="ml-auto size-4" />
@@ -134,31 +130,21 @@ export function AppSidebar() {
                 <DropdownMenuLabel className="p-0 font-normal">
                   <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
                     <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarFallback className="rounded-lg">
-                        {user?.email?.charAt(0).toUpperCase() || "U"}
-                      </AvatarFallback>
+                      <AvatarFallback className="rounded-lg">{getInitials()}</AvatarFallback>
                     </Avatar>
                     <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-semibold">
-                        {user?.email?.split("@")[0] || "User"}
-                      </span>
+                      <span className="truncate font-semibold">{getDisplayName()}</span>
                       <span className="truncate text-xs">{user?.email}</span>
                     </div>
                   </div>
                 </DropdownMenuLabel>
-                {/* <DropdownMenuSeparator />
+                <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
                   <Link href="/dashboard/profile">
                     <User2 className="mr-2 h-4 w-4" />
                     Profile
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard/settings">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem> */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut}>
                   <LogOut className="mr-2 h-4 w-4" />

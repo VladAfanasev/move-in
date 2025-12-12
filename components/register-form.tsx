@@ -17,7 +17,8 @@ interface RegisterFormProps extends React.ComponentPropsWithoutRef<"div"> {
 export function RegisterForm({ className, redirectTo, ...props }: RegisterFormProps) {
   const emailId = useId()
   const passwordId = useId()
-  const fullNameId = useId()
+  const firstNameId = useId()
+  const lastNameId = useId()
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -52,14 +53,12 @@ export function RegisterForm({ className, redirectTo, ...props }: RegisterFormPr
           <form onSubmit={handleSubmit}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
-                <Label htmlFor={fullNameId}>Full Name</Label>
-                <Input
-                  id={fullNameId}
-                  name="fullName"
-                  type="text"
-                  placeholder="John Doe"
-                  required
-                />
+                <Label htmlFor={firstNameId}>First Name</Label>
+                <Input id={firstNameId} name="firstName" type="text" placeholder="John" required />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor={lastNameId}>Last Name</Label>
+                <Input id={lastNameId} name="lastName" type="text" placeholder="Doe" />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor={emailId}>Email</Label>

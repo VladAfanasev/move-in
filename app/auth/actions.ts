@@ -41,12 +41,16 @@ export async function signIn(formData: FormData) {
 export async function signUp(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
-  const fullName = formData.get("fullName") as string
+  const firstName = formData.get("firstName") as string
+  const lastName = formData.get("lastName") as string
 
   // Validate inputs
-  if (!(email && password && fullName)) {
-    return { error: "All fields are required" }
+  if (!(email && password && firstName)) {
+    return { error: "Email, password, and first name are required" }
   }
+
+  // Create full name from first and last name
+  const fullName = lastName ? `${firstName} ${lastName}`.trim() : firstName
 
   if (password.length < 6) {
     return { error: "Password must be at least 6 characters" }
@@ -83,11 +87,27 @@ export async function signUp(formData: FormData) {
       const { db } = await import("@/db/client")
       const { profiles } = await import("@/db/schema")
 
-      await db.insert(profiles).values({
-        id: data.user.id,
-        email: email,
-        fullName: fullName,
-      })
+      // Try to insert with new fields, fall back to fullName only if columns don't exist
+      try {
+        await db.insert(profiles).values({
+          id: data.user.id,
+          email: email,
+          firstName: firstName,
+          lastName: lastName || null,
+          fullName: fullName,
+        })
+      } catch (insertError) {
+        // Fallback to just fullName if firstName/lastName columns don't exist yet
+        console.warn(
+          "Failed to insert with firstName/lastName, falling back to fullName only:",
+          insertError,
+        )
+        await db.insert(profiles).values({
+          id: data.user.id,
+          email: email,
+          fullName: fullName,
+        })
+      }
 
       console.log("Profile created successfully for user:", data.user.id)
     } catch (profileError) {

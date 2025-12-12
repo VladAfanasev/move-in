@@ -50,6 +50,13 @@
       "when": 1764347259751,
       "tag": "0006_breezy_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1764608820026,
+      "tag": "0007_tan_scourge",
+      "breakpoints": true
     }
   ]
 }
