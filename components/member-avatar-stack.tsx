@@ -189,7 +189,7 @@ export function MemberAvatarStack({
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <h4 className="font-medium">Members</h4>
+            <h4 className="font-medium">Groepsleden</h4>
             <span className="text-muted-foreground text-sm">({activeMembers.length})</span>
           </div>
 

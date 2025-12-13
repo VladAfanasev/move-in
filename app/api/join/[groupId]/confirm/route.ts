@@ -1,13 +1,18 @@
+import { randomBytes } from "crypto"
 import { and, eq } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import type { NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 
 export async function POST(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ groupId: string }> },
 ) {
   const { groupId } = await params
+
+  // Get redirect URL from form data
+  const formData = await request.formData()
+  const redirectUrl = formData.get("redirect") as string | null
   const supabase = await createClient()
 
   // Check if user is authenticated
@@ -22,7 +27,7 @@ export async function POST(
 
   // Dynamic imports to avoid build-time database connection
   const { db } = await import("@/db/client")
-  const { buyingGroups, groupMembers } = await import("@/db/schema")
+  const { buyingGroups, groupMembers, groupJoinRequests } = await import("@/db/schema")
 
   // Check if group exists
   const group = await db
@@ -52,60 +57,49 @@ export async function POST(
     .limit(1)
 
   if (existingMember.length > 0) {
-    // User is already a member, redirect to group page
-    redirect(`/dashboard/groups/${groupId}`)
+    // User is already a member, redirect to specified page or group page
+    redirect(redirectUrl || `/dashboard/groups/${groupId}`)
   }
 
   try {
-    // Check group capacity
-    if (group[0].maxMembers) {
-      const currentMembers = await db
-        .select()
-        .from(groupMembers)
-        .where(eq(groupMembers.groupId, groupId))
-
-      if (currentMembers.length >= group[0].maxMembers) {
-        return new Response(JSON.stringify({ error: "Group is full" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        })
-      }
-    }
-
-    // Check if user has any previous membership (including removed/left)
-    const previousMembership = await db
+    // Check for existing pending join request
+    const existingRequest = await db
       .select()
-      .from(groupMembers)
-      .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
+      .from(groupJoinRequests)
+      .where(
+        and(
+          eq(groupJoinRequests.groupId, groupId),
+          eq(groupJoinRequests.userId, user.id),
+          eq(groupJoinRequests.status, "pending"),
+        ),
+      )
       .limit(1)
 
-    if (previousMembership.length > 0) {
-      // Update existing record to rejoin
-      await db
-        .update(groupMembers)
-        .set({
-          status: "active",
-          role: "member",
-          joinedAt: new Date(),
-          leftAt: null,
-        })
-        .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
-    } else {
-      // Add user to group as new member
-      await db.insert(groupMembers).values({
-        groupId: groupId,
-        userId: user.id,
-        role: "member",
-        status: "active",
-      })
+    if (existingRequest.length > 0) {
+      // Request already exists, redirect to pending state
+      redirect(redirectUrl || `/dashboard/groups/${groupId}`)
     }
+
+    // Generate secure token for this request
+    const requestToken = randomBytes(32).toString("hex")
+    const expiresAt = new Date()
+    expiresAt.setDate(expiresAt.getDate() + 30) // 30 days expiry
+
+    // Create join request instead of directly adding to group
+    await db.insert(groupJoinRequests).values({
+      groupId,
+      userId: user.id,
+      requestToken,
+      message: null,
+      expiresAt,
+    })
   } catch (error) {
-    console.error("Error joining group:", error)
+    console.error("Error creating join request:", error)
     console.error("Error details:", error instanceof Error ? error.message : String(error))
     console.error("Stack trace:", error instanceof Error ? error.stack : "No stack trace")
     return new Response(
       JSON.stringify({
-        error: "Failed to join group",
+        error: "Failed to create join request",
         details: error instanceof Error ? error.message : String(error),
       }),
       {
@@ -115,6 +109,6 @@ export async function POST(
     )
   }
 
-  // Redirect to the group page after successful join
-  redirect(`/dashboard/groups/${groupId}`)
+  // Redirect to the specified page or group page after successful join request
+  redirect(redirectUrl || `/dashboard/groups/${groupId}`)
 }

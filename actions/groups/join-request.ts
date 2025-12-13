@@ -6,6 +6,7 @@ import { redirect } from "next/navigation"
 import { db } from "@/db/client"
 import { buyingGroups, groupJoinRequests, groupMembers, profiles } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
+import { notifyJoinRequest } from "@/lib/realtime-notifications"
 
 export async function createJoinRequestAction(groupId: string, message?: string) {
   const supabase = await createClient()
@@ -82,6 +83,14 @@ export async function createJoinRequestAction(groupId: string, message?: string)
   } catch (error) {
     console.error("Failed to create join request:", error)
     throw new Error("Failed to create join request")
+  }
+
+  // Send real-time notification to group owners/admins in active calculation sessions
+  try {
+    await notifyJoinRequest(groupId, "all", user.id)
+  } catch (error) {
+    console.error("Failed to send real-time notification:", error)
+    // Don't fail the join request process for notification errors
   }
 
   return {

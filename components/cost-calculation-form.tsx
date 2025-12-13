@@ -1,15 +1,15 @@
 "use client"
 
 import type { User } from "@supabase/supabase-js"
-import { AlertCircle, CheckCircle, Play, Settings, Users } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { useCallback, useEffect, useId, useState } from "react"
+import { Check, Plus, Scale, Target, User as UserIcon } from "lucide-react"
+import { useCallback, useEffect, useState } from "react"
+import { CalculationInvitePopover } from "@/components/calculation-invite-popover"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { RangeSlider } from "@/components/ui/range-slider"
+import { Progress } from "@/components/ui/progress"
+import { Slider } from "@/components/ui/slider"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useCalculationSession } from "@/hooks/use-calculation-session"
 
 interface Property {
   id: string
@@ -35,21 +35,12 @@ interface Member {
   status: "pending" | "active" | "left" | "removed"
 }
 
-interface MemberProposal {
+interface SessionMember {
   userId: string
-  userName: string
-  investmentAmount: number
-  investmentPercentage: number
-  notes?: string
-  status: "draft" | "submitted"
-}
-
-interface MemberIntention {
-  userId: string
-  userName: string
-  desiredPercentage?: number
-  maxPercentage?: number
-  status: "not_set" | "setting" | "intentions_set" | "ready_for_session"
+  name: string
+  percentage: number
+  status: "adjusting" | "confirmed"
+  isOnline?: boolean
 }
 
 interface CostCalculationFormProps {
@@ -67,116 +58,128 @@ export function CostCalculationForm({
   currentUser,
   isSessionLocked = false,
 }: CostCalculationFormProps) {
-  const router = useRouter()
-  const formId = useId()
-  // Cost calculation state
-  const [costs, setCosts] = useState({
-    purchasePrice: Number(property.price),
-    notaryFees: 2500,
-    transferTax: 0, // Will be calculated
-    renovationCosts: 0,
-    brokerFees: 0,
-    inspectionCosts: 750,
-    otherCosts: 0,
-  })
-
-  // User's investment proposal
-  const [userProposal, setUserProposal] = useState({
-    investmentPercentage: 33.33,
-    investmentAmount: 0,
-    notes: "",
-  })
-
-  // Member proposals (mock data for now)
-  const [_memberProposals, _setMemberProposals] = useState<MemberProposal[]>([])
-
-  // Intention setting state
-  const [showIntentionModal, setShowIntentionModal] = useState(false)
-  const [tempInvestmentRange, setTempInvestmentRange] = useState([25, 40])
-  const [memberIntentions, setMemberIntentions] = useState<MemberIntention[]>([])
-  const [calculationId, setCalculationId] = useState<string | null>(null)
+  // Session state for percentage negotiation
+  const [sessionMembers, setSessionMembers] = useState<SessionMember[]>([])
+  const [yourPercentage, setYourPercentage] = useState(25)
+  const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
   const [loading, setLoading] = useState(true)
-  const [submittingIntention, setSubmittingIntention] = useState(false)
-  const [startingSession, setStartingSession] = useState(false)
-  const [existingSessionId, setExistingSessionId] = useState<string | null>(null)
 
-  // Calculate if session can be started
-  const allIntentionsSet = memberIntentions.every(
-    intention => intention.status === "intentions_set",
-  )
-  const _canStartSession = allIntentionsSet && memberIntentions.length >= 2
+  // Get current user's name from members list
+  const currentMember = _members.find(m => m.userId === currentUser.id)
+  const currentUserName = currentMember?.fullName || currentUser.email || "Unknown User"
 
-  // Calculate if 100% is achievable
-  const totalMaxPercentage = memberIntentions
-    .filter(intention => intention.maxPercentage)
-    .reduce((sum, intention) => sum + (intention.maxPercentage || 0), 0)
-  const canReach100 = totalMaxPercentage >= 100
+  // Real-time session management
+  const {
+    isConnected,
+    onlineMembers,
+    emitPercentageUpdate,
+    emitStatusChange,
+    getOnlineMemberCount,
+  } = useCalculationSession({
+    sessionId: `${group.id}-${property.id}`, // Create session ID from group and property
+    userId: currentUser.id,
+    userName: currentUserName,
+    groupId: group.id,
+    propertyId: property.id,
+  })
 
-  // Calculate derived values
-  const transferTax = costs.purchasePrice * 0.02 // 2% transfer tax in Netherlands
-  const totalCosts =
-    costs.purchasePrice +
-    costs.notaryFees +
-    transferTax +
-    costs.renovationCosts +
-    costs.brokerFees +
-    costs.inspectionCosts +
-    costs.otherCosts
+  // Initialize session members from actual group members
+  useEffect(() => {
+    if (_members.length > 0 && sessionMembers.length === 0) {
+      const initialMembers: SessionMember[] = _members
+        .filter(member => member.status === "active")
+        .map(member => ({
+          userId: member.userId,
+          name: member.fullName || member.email || "Unknown User",
+          percentage: 25, // Default percentage
+          status: "adjusting" as const,
+          isOnline: onlineMembers.includes(member.userId), // Check if online
+        }))
+      
+      setSessionMembers(initialMembers)
+    }
+  }, [_members, sessionMembers.length, onlineMembers])
 
-  const maxInvestmentPercentage = 90
-  const minInvestmentPercentage = 10
-
-  // Update investment amount when percentage changes
-  const _handlePercentageChange = (percentage: number) => {
-    setIsPercentageMode(true)
-    const amount = Math.round((totalCosts * percentage) / 100)
-    setUserProposal(prev => ({
-      ...prev,
-      investmentPercentage: percentage,
-      investmentAmount: amount,
-    }))
-  }
-
-  // Update percentage when amount changes
-  const _handleAmountChange = (amount: number) => {
-    setIsPercentageMode(false)
-    const percentage = Math.min(
-      maxInvestmentPercentage,
-      Math.max(minInvestmentPercentage, (amount / totalCosts) * 100),
+  // Update online status when online members change
+  useEffect(() => {
+    setSessionMembers(prevMembers => 
+      prevMembers.map(member => ({
+        ...member,
+        isOnline: onlineMembers.includes(member.userId)
+      }))
     )
-    setUserProposal(prev => ({
-      ...prev,
-      investmentAmount: amount,
-      investmentPercentage: percentage,
-    }))
+  }, [onlineMembers])
+
+  // Calculate total costs (simplified - could be passed as prop)
+  const totalCosts = Number(property.price) + 2500 + Number(property.price) * 0.02 + 750
+
+  // Calculate session totals
+  const totalPercentage = sessionMembers.reduce((sum, member) => {
+    if (member.userId === currentUser.id) {
+      return sum + yourPercentage
+    }
+    return sum + member.percentage
+  }, 0)
+
+  const yourAmount = Math.round((totalCosts * yourPercentage) / 100)
+  const allConfirmed = sessionMembers.every(member =>
+    member.userId === currentUser.id ? yourStatus === "confirmed" : member.status === "confirmed",
+  )
+
+  // Handle percentage change
+  const handlePercentageChange = (newPercentage: number) => {
+    if (yourStatus === "confirmed" || isSessionLocked) return
+    setYourPercentage(newPercentage)
+    setYourStatus("adjusting")
+
+    // Emit real-time update
+    emitPercentageUpdate(newPercentage, "adjusting")
+
+    // Update session members locally for immediate feedback
+    setSessionMembers(prev =>
+      prev.map(member =>
+        member.userId === currentUser.id
+          ? { ...member, percentage: newPercentage, status: "adjusting" }
+          : member,
+      ),
+    )
   }
 
-  // Keep track of whether we're in "percentage mode" (user is changing percentage)
-  // or "amount mode" (user is changing amount directly)
-  const [isPercentageMode, setIsPercentageMode] = useState(true)
+  // Handle confirm
+  const handleConfirm = () => {
+    if (Math.abs(totalPercentage - 100) >= 0.01) return
+    setYourStatus("confirmed")
 
-  // Calculate the investment amount based on current percentage and total costs
-  const calculatedAmount = Math.round((totalCosts * userProposal.investmentPercentage) / 100)
+    // Emit real-time status change
+    emitStatusChange("confirmed")
 
-  // Update investment amount when total costs change and we're in percentage mode
-  useEffect(() => {
-    if (isPercentageMode) {
-      setUserProposal(prev => ({
-        ...prev,
-        investmentAmount: calculatedAmount,
-      }))
-    }
-  }, [calculatedAmount, isPercentageMode])
+    setSessionMembers(prev =>
+      prev.map(member =>
+        member.userId === currentUser.id ? { ...member, status: "confirmed" } : member,
+      ),
+    )
+  }
 
-  // Initialize on first render
-  useEffect(() => {
-    if (userProposal.investmentAmount === 0) {
-      setUserProposal(prev => ({
-        ...prev,
-        investmentAmount: calculatedAmount,
-      }))
-    }
-  }, [calculatedAmount, userProposal.investmentAmount])
+  // Handle change mind
+  const handleChangeMind = () => {
+    setYourStatus("adjusting")
+
+    // Emit real-time status change
+    emitStatusChange("adjusting")
+
+    setSessionMembers(prev =>
+      prev.map(member =>
+        member.userId === currentUser.id ? { ...member, status: "adjusting" } : member,
+      ),
+    )
+  }
+
+  // Check if user can confirm
+  const canConfirm =
+    yourPercentage >= 10 &&
+    yourPercentage <= 90 &&
+    Math.abs(totalPercentage - 100) < 0.01 &&
+    yourStatus === "adjusting"
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("nl-NL", {
@@ -187,494 +190,310 @@ export function CostCalculationForm({
     }).format(amount)
   }
 
-  // Initialize empty intentions for members
-  const initializeEmptyIntentions = useCallback(() => {
-    const intentions = _members
+  // Initialize session members
+  const initializeSessionMembers = useCallback(() => {
+    const members = _members
       .filter(m => m.status === "active")
       .map((member, index) => ({
         userId: member.userId,
-        userName:
+        name:
           member.userId === currentUser.id
             ? "You"
             : member.fullName || member.email?.split("@")[0] || `Member ${index + 1}`,
-        status: "not_set" as const,
+        percentage: member.userId === currentUser.id ? yourPercentage : 25,
+        status: "adjusting" as const,
       }))
-    setMemberIntentions(intentions)
-  }, [_members, currentUser.id])
+    setSessionMembers(members)
+    setLoading(false)
+  }, [_members, currentUser.id, yourPercentage])
 
-  // Load member intentions from database
-  const loadMemberIntentions = useCallback(async () => {
-    try {
-      setLoading(true)
-
-      // Create or get cost calculation first
-      const response = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          groupId: group.id,
-          propertyId: property.id,
-          initialCosts: costs,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setCalculationId(data.calculationId)
-
-        // Check if session already exists
-        if (data.sessionId) {
-          setExistingSessionId(data.sessionId)
-        }
-      } else {
-        // If session creation fails, still get/create calculation for intentions
-        const _calcResponse = await fetch("/api/intentions", {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-        })
-      }
-
-      // Load current intentions
-      const intentionsResponse = await fetch(
-        `/api/intentions?groupId=${group.id}&propertyId=${property.id}`,
-      )
-
-      if (intentionsResponse.ok) {
-        const intentionsData = await intentionsResponse.json()
-        setMemberIntentions(intentionsData.intentions)
-        if (intentionsData.calculationId) {
-          setCalculationId(intentionsData.calculationId)
-        }
-      } else {
-        // Initialize with empty intentions if API doesn't exist yet
-        initializeEmptyIntentions()
-      }
-    } catch (error) {
-      console.error("Error loading intentions:", error)
-      initializeEmptyIntentions()
-    } finally {
-      setLoading(false)
-    }
-  }, [group.id, property.id, costs, initializeEmptyIntentions])
-
-  // Load intentions on component mount
+  // Initialize on component mount
   useEffect(() => {
-    loadMemberIntentions()
-  }, [loadMemberIntentions])
+    initializeSessionMembers()
+  }, [initializeSessionMembers])
 
-  const _handleSubmitProposal = async () => {
-    // TODO: Implement server action to save proposal
-    console.log("Submitting proposal:", {
-      propertyId: property.id,
-      groupId: group.id,
-      userId: currentUser.id,
-      ...userProposal,
-    })
-    alert("Voorstel ingediend! Andere groepsleden kunnen nu jouw voorstel zien.")
+  const getProgressMessage = () => {
+    if (totalPercentage < 95) {
+      return `Nog nodig: ${(100 - totalPercentage).toFixed(1)}%`
+    }
+    if (totalPercentage >= 95 && totalPercentage < 100) {
+      return `Bijna daar! ${(100 - totalPercentage).toFixed(1)}% resterend`
+    }
+    if (totalPercentage === 100 && allConfirmed) {
+      return "🎉 ALLE LEDEN BEVESTIGD"
+    }
+    if (totalPercentage === 100) {
+      return "100% bereikt! Wachten op bevestiging van iedereen..."
+    }
+    if (totalPercentage > 100) {
+      return `Over de limiet! ${(totalPercentage - 100).toFixed(1)}% te veel`
+    }
+    return ""
   }
 
-  const handleOpenIntentionModal = () => {
-    const currentMember = memberIntentions.find(m => m.userId === currentUser.id)
-    if (currentMember?.desiredPercentage) {
-      setTempInvestmentRange([currentMember.desiredPercentage, currentMember.maxPercentage || 40])
-    }
-    setShowIntentionModal(true)
-  }
-
-  const handleSubmitIntention = async () => {
-    if (!calculationId) {
-      alert("Calculation not found. Please try refreshing the page.")
-      return
-    }
-
-    try {
-      setSubmittingIntention(true)
-
-      const response = await fetch("/api/intentions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          calculationId,
-          desiredPercentage: tempInvestmentRange[0],
-          maxPercentage: tempInvestmentRange[1],
-        }),
-      })
-
-      if (response.ok) {
-        // Update local state
-        setMemberIntentions(prev =>
-          prev.map(intention =>
-            intention.userId === currentUser.id
-              ? {
-                  ...intention,
-                  desiredPercentage: tempInvestmentRange[0],
-                  maxPercentage: tempInvestmentRange[1],
-                  status: "intentions_set",
-                }
-              : intention,
-          ),
-        )
-        setShowIntentionModal(false)
-
-        // Reload intentions to get latest data from all members
-        await loadMemberIntentions()
-      } else {
-        const error = await response.json()
-        alert(`Error setting intentions: ${error.error}`)
-      }
-    } catch (error) {
-      console.error("Error submitting intention:", error)
-      alert("Error setting intentions. Please try again.")
-    } finally {
-      setSubmittingIntention(false)
-    }
-  }
-
-  const handleStartLiveSession = async () => {
-    try {
-      setStartingSession(true)
-
-      const response = await fetch("/api/sessions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          groupId: group.id,
-          propertyId: property.id,
-          initialCosts: costs,
-        }),
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        console.log("Live negotiation session created:", data.sessionId)
-        router.push(`/dashboard/groups/${group.id}/negotiate/${property.id}/live`)
-      } else {
-        const error = await response.json()
-        alert(`Error starting session: ${error.error}`)
-      }
-    } catch (error) {
-      console.error("Error starting live session:", error)
-      alert("Error starting live session. Please try again.")
-    } finally {
-      setStartingSession(false)
-    }
-  }
-
-  const getMemberStatusText = (intention: MemberIntention) => {
-    switch (intention.status) {
-      case "not_set":
-        return intention.userId === currentUser.id ? "Geef je schatting" : "Wacht op schatting"
-      case "setting":
-        return "Schatting wordt ingesteld..."
-      case "intentions_set":
-        return "Klaar"
-      case "ready_for_session":
-        return "Ready!"
-      default:
-        return "Unknown status"
-    }
-  }
-
-  const getMemberStatusColor = (intention: MemberIntention) => {
-    switch (intention.status) {
-      case "not_set":
-        return intention.userId === currentUser.id ? "text-blue-600" : "text-orange-600"
-      case "setting":
-        return "text-yellow-600"
-      case "intentions_set":
-        return "text-green-600"
-      case "ready_for_session":
-        return "text-green-700"
-      default:
-        return "text-gray-600"
-    }
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Intention Setting Modal */}
-      <Dialog open={showIntentionModal} onOpenChange={setShowIntentionModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Geef je geschatte investering op</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-6">
-            <div className="rounded-lg bg-muted/50 p-3 text-sm">
-              <p className="mb-1 font-medium">Totale investering: {formatCurrency(totalCosts)}</p>
-              <p className="text-muted-foreground">Geef je minimum en maximum investering op</p>
-            </div>
-
-            <RangeSlider
-              label="Investment Range"
-              value={tempInvestmentRange}
-              onValueChange={setTempInvestmentRange}
-              min={10}
-              max={90}
-              step={1}
-              totalAmount={totalCosts}
-              showAmountInputs={true}
-            />
-
-            <div className="rounded-lg bg-blue-50 p-3 text-blue-800 text-sm">
-              <p className="font-medium">Hoe dit werkt:</p>
-              <ul className="mt-1 list-inside list-disc space-y-1">
-                <li>
-                  Geef je <strong>minimum</strong> en <strong>maximum</strong> investering op
-                </li>
-                <li>Je kunt investeren overal binnen deze grenzen</li>
-                <li>Je kunt in de live sessie met elkaar overleggen om tot een 100% te komen</li>
-              </ul>
-            </div>
-
-            <div className="flex space-x-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowIntentionModal(false)}
-                className="flex-1"
-              >
-                Annuleren
-              </Button>
-              <Button
-                onClick={handleSubmitIntention}
-                className="flex-1"
-                disabled={submittingIntention}
-              >
-                {submittingIntention ? "Versturen..." : "Versturen"}
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Individual Cost Calculation */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Cost Breakdown */}
+  if (loading) {
+    return (
+      <div className="space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Kosten overzicht</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div>
-                <Label htmlFor={`${formId}-purchasePrice`}>Koopprijs</Label>
-                <Input
-                  id={`${formId}-purchasePrice`}
-                  type="number"
-                  value={costs.purchasePrice}
-                  onChange={e =>
-                    setCosts(prev => ({ ...prev, purchasePrice: Number(e.target.value) }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor={`${formId}-notaryFees`}>Notariskosten</Label>
-                <Input
-                  id={`${formId}-notaryFees`}
-                  type="number"
-                  value={costs.notaryFees}
-                  onChange={e =>
-                    setCosts(prev => ({ ...prev, notaryFees: Number(e.target.value) }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label>Overdrachtsbelasting (2%)</Label>
-                <Input value={formatCurrency(transferTax)} disabled className="mt-1 bg-muted" />
-              </div>
-
-              <div>
-                <Label htmlFor={`${formId}-renovationCosts`}>Renovatiekosten</Label>
-                <Input
-                  id={`${formId}-renovationCosts`}
-                  type="number"
-                  value={costs.renovationCosts}
-                  onChange={e =>
-                    setCosts(prev => ({ ...prev, renovationCosts: Number(e.target.value) }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor={`${formId}-inspectionCosts`}>Inspecties</Label>
-                <Input
-                  id={`${formId}-inspectionCosts`}
-                  type="number"
-                  value={costs.inspectionCosts}
-                  onChange={e =>
-                    setCosts(prev => ({ ...prev, inspectionCosts: Number(e.target.value) }))
-                  }
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor={`${formId}-otherCosts`}>Overige kosten</Label>
-                <Input
-                  id={`${formId}-otherCosts`}
-                  type="number"
-                  value={costs.otherCosts}
-                  onChange={e =>
-                    setCosts(prev => ({ ...prev, otherCosts: Number(e.target.value) }))
-                  }
-                  className="mt-1"
-                />
-              </div>
+          <CardContent className="pt-6">
+            <div className="animate-pulse space-y-4">
+              <div className="h-4 w-3/4 rounded bg-gray-200"></div>
+              <div className="h-20 rounded bg-gray-200"></div>
+              <div className="h-4 w-1/2 rounded bg-gray-200"></div>
             </div>
-
-            <div className="border-t pt-4">
-              <div className="flex justify-between font-semibold text-lg">
-                <span>Totale kosten:</span>
-                <span>{formatCurrency(totalCosts)}</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Group Members Status Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Users className="h-5 w-5" />
-              <span>Groep Status</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="space-y-3">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-16 animate-pulse rounded-lg bg-gray-100 p-4" />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {memberIntentions.map(intention => {
-                  const isYou = intention.userId === currentUser.id
-                  const canSetIntentions = isYou && intention.status === "not_set"
-
-                  return (
-                    <div
-                      key={intention.userId}
-                      className={`flex items-center justify-between rounded-lg p-4 ${
-                        isYou ? "border border-blue-200 bg-blue-50" : "bg-gray-50"
-                      }`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className={`h-3 w-3 rounded-full ${
-                            intention.status === "intentions_set"
-                              ? "bg-green-500"
-                              : intention.status === "not_set"
-                                ? "bg-gray-300"
-                                : "bg-yellow-500"
-                          }`}
-                        />
-                        <div>
-                          <div className="font-medium">{intention.userName}</div>
-                          {intention.desiredPercentage && intention.maxPercentage && (
-                            <div className="text-muted-foreground text-sm">
-                              Gewenst: {intention.desiredPercentage}% • Max:{" "}
-                              {intention.maxPercentage}%
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center space-x-3">
-                        <span className={`font-medium text-sm ${getMemberStatusColor(intention)}`}>
-                          {getMemberStatusText(intention)}
-                        </span>
-
-                        {canSetIntentions && (
-                          <Button
-                            size="sm"
-                            onClick={handleOpenIntentionModal}
-                            className="flex items-center space-x-1"
-                          >
-                            <Settings className="h-4 w-4" />
-                            <span>Opgeven</span>
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Session Status */}
-            {!loading && (
-              <>
-                {isSessionLocked ? (
-                  <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
-                    <div className="text-center">
-                      <div className="mb-4">
-                        <CheckCircle className="mx-auto h-12 w-12 text-green-600" />
-                      </div>
-                      <h3 className="mb-2 font-semibold text-lg">Kosten berekening afgerond</h3>
-                      <p className="text-muted-foreground">
-                        De negotiatie sessie is afgerond en alle percentages zijn vastgesteld. De
-                        kostenberekening is nu vergrendeld. Bekijk het overzicht voor de finale
-                        details.
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  allIntentionsSet && (
-                    <div className="mt-6 rounded-lg border border-green-200 bg-green-50 p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-5 w-5 text-green-600" />
-                          <div>
-                            <div className="font-semibold text-green-800">
-                              Alle intenties aanwezig!
-                            </div>
-                            <div className="text-green-700 text-sm">
-                              {canReach100
-                                ? "100% is achievable with current maximum values"
-                                : "⚠️ 100% might not be achievable - adjust in live session"}
-                            </div>
-                          </div>
-                        </div>
-                        <Button
-                          onClick={handleStartLiveSession}
-                          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
-                          disabled={startingSession}
-                        >
-                          <Play className="h-4 w-4" />
-                          <span>
-                            {startingSession
-                              ? "Sessie starten..."
-                              : existingSessionId
-                                ? "Ga naar sessie"
-                                : "Start Live Sessie"}
-                          </span>
-                        </Button>
-                      </div>
-                    </div>
-                  )
-                )}
-
-                {!(allIntentionsSet || isSessionLocked) && (
-                  <div className="mt-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
-                    <div className="flex items-center space-x-2">
-                      <AlertCircle className="h-5 w-5 text-yellow-600" />
-                      <div className="text-sm text-yellow-800">
-                        Wachten op alle leden om hun schatting te geven voordat de live sessie
-                        begint.
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
           </CardContent>
         </Card>
       </div>
-    </div>
+    )
+  }
+
+  return (
+    <TooltipProvider delayDuration={50}>
+      <div className="space-y-4">
+        {/* Investment Negotiation - Main Focus */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* Progress & Your Investment */}
+          <div className="space-y-4 lg:col-span-2">
+            {/* Total Progress */}
+            <Card>
+              <CardContent className="pt-4">
+                <div className="mb-4">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="font-semibold">Totale dekking</span>
+                    <span
+                      className={`font-semibold text-lg ${
+                        totalPercentage === 100 ? "text-green-600" : ""
+                      }`}
+                    >
+                      {totalPercentage % 1 === 0
+                        ? `${totalPercentage.toFixed(0)}%`
+                        : `${totalPercentage.toFixed(1)}%`}
+                    </span>
+                  </div>
+                  <Progress value={Math.min(100, totalPercentage)} className="h-3" />
+                  <div
+                    className={`mt-2 text-center ${
+                      totalPercentage === 100 && allConfirmed
+                        ? "text-green-600"
+                        : totalPercentage > 100
+                          ? "text-red-600"
+                          : totalPercentage >= 95
+                            ? "text-yellow-600"
+                            : "text-orange-600"
+                    }`}
+                  >
+                    <span className="font-medium text-sm">{getProgressMessage()}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Your Investment */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg">Jouw investering</CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Calculate what percentage is needed to reach exactly 100%
+                            const otherMembersTotal = sessionMembers
+                              .filter(member => member.userId !== currentUser.id)
+                              .reduce((sum, member) => sum + member.percentage, 0)
+
+                            const neededPercentage = 100 - otherMembersTotal
+                            const constrainedPercentage = Math.max(
+                              10,
+                              Math.min(90, neededPercentage),
+                            )
+
+                            if (yourStatus === "confirmed" || isSessionLocked) return
+                            handlePercentageChange(constrainedPercentage)
+                          }}
+                          disabled={yourStatus === "confirmed" || isSessionLocked}
+                        >
+                          <Target className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Vul automatisch aan tot 100%</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            // Calculate equal split among all members
+                            const totalMembers = sessionMembers.length
+                            const equalPercentage = 100 / totalMembers
+                            const constrainedPercentage = Math.max(
+                              10,
+                              Math.min(90, equalPercentage),
+                            )
+
+                            if (yourStatus === "confirmed" || isSessionLocked) return
+                            handlePercentageChange(constrainedPercentage)
+                          }}
+                          disabled={yourStatus === "confirmed" || isSessionLocked}
+                        >
+                          <Scale className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Gelijke verdeling</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {yourStatus === "adjusting" ? (
+                  <>
+                    <div>
+                      <div className="mb-3 flex items-center justify-between">
+                        <span className="font-medium">Percentage</span>
+                        <span className="font-semibold text-xl">{yourPercentage.toFixed(1)}%</span>
+                      </div>
+                      <Slider
+                        value={[yourPercentage]}
+                        onValueChange={value => handlePercentageChange(value[0])}
+                        min={10}
+                        max={90}
+                        step={0.1}
+                        className="mb-2"
+                      />
+                      <div className="flex justify-between text-muted-foreground text-xs">
+                        <span>10%</span>
+                        <span>50%</span>
+                        <span>90%</span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg bg-muted p-4 text-center">
+                      <div className="font-semibold text-2xl">{formatCurrency(yourAmount)}</div>
+                      <div className="text-muted-foreground text-sm">Jouw investering</div>
+                    </div>
+
+                    <Button
+                      onClick={handleConfirm}
+                      disabled={!canConfirm}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {canConfirm
+                        ? `Bevestig ${yourPercentage.toFixed(1)}%`
+                        : yourPercentage < 10 || yourPercentage > 90
+                          ? "Percentage moet tussen 10-90% zijn"
+                          : "Totaal moet 100% zijn om te bevestigen"}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-lg bg-green-50 p-4 text-center">
+                      <div className="mt-2 font-semibold text-2xl">
+                        {yourPercentage.toFixed(1)}%
+                      </div>
+                      <div className="font-medium">{formatCurrency(yourAmount)}</div>
+                    </div>
+
+                    <Button onClick={handleChangeMind} variant="outline" className="w-full">
+                      Verander mijn aandeel
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Members Panel */}
+          <div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                      <UserIcon className="h-4 w-4" />
+                      <div>
+                        <span>Groepsleden</span>
+                        <div className="font-normal text-muted-foreground text-xs">
+                          {getOnlineMemberCount()}{" "}
+                          {getOnlineMemberCount() === 1 ? "lid actief" : "leden actief"} in deze
+                          sessie
+                        </div>
+                      </div>
+                    </div>
+                    <CalculationInvitePopover
+                      groupId={group.id}
+                      propertyId={property.id}
+                      groupName={group.name}
+                    >
+                      <Button variant="outline" size="sm">
+                        <Plus className="mr-1 h-3 w-3" />
+                        Uitnodigen
+                      </Button>
+                    </CalculationInvitePopover>
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {sessionMembers.map(member => {
+                    const isYou = member.userId === currentUser.id
+                    const displayStatus = isYou ? yourStatus : member.status
+                    const currentPercentage = isYou ? yourPercentage : member.percentage
+
+                    return (
+                      <div
+                        key={member.userId}
+                        className={`space-y-3 rounded-lg p-4 ${
+                          isYou ? "border border-primary/20 bg-primary/5" : "bg-muted/50"
+                        }`}
+                      >
+                        {/* Header: Name and Status */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-sm">{member.name}</span>
+                            {member.isOnline && (
+                              <div className="h-2 w-2 rounded-full bg-green-500" title="Online" />
+                            )}
+                          </div>
+                          {displayStatus === "confirmed" && (
+                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600">
+                              <Check className="h-3 w-3 text-white" />
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Percentage and Amount */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold text-lg">
+                              {currentPercentage.toFixed(1)}%
+                            </span>
+                            <span className="text-muted-foreground text-sm">
+                              {formatCurrency((totalCosts * currentPercentage) / 100)}
+                            </span>
+                          </div>
+
+                          {/* Progress Bar */}
+                          <Progress value={currentPercentage} className="h-2" max={100} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+    </TooltipProvider>
   )
 }
