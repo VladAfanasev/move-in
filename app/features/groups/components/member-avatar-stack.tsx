@@ -3,7 +3,7 @@
 import { Users } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { getJoinRequestsAction } from "@/actions/groups/join-request"
-import { CompactMemberList } from "@/components/compact-member-list"
+import { CompactMemberList } from "@/app/features/groups/components/compact-member-list"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"

@@ -3,7 +3,7 @@
 import type { User } from "@supabase/supabase-js"
 import { Check, Plus, Scale, Target, User as UserIcon } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
-import { CalculationInvitePopover } from "@/components/calculation-invite-popover"
+import { CalculationInvitePopover } from "@/app/features/cost-calculation/components/calculation-invite-popover"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -95,18 +95,18 @@ export function CostCalculationForm({
           status: "adjusting" as const,
           isOnline: onlineMembers.includes(member.userId), // Check if online
         }))
-      
+
       setSessionMembers(initialMembers)
     }
   }, [_members, sessionMembers.length, onlineMembers])
 
   // Update online status when online members change
   useEffect(() => {
-    setSessionMembers(prevMembers => 
+    setSessionMembers(prevMembers =>
       prevMembers.map(member => ({
         ...member,
-        isOnline: onlineMembers.includes(member.userId)
-      }))
+        isOnline: onlineMembers.includes(member.userId),
+      })),
     )
   }, [onlineMembers])
 

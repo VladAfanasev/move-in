@@ -78,8 +78,8 @@ test.describe("Cost Negotiation E2E", () => {
         if (await startButton.isVisible()) {
           await startButton.click()
 
-          // Should navigate to live negotiation page
-          await expect(page.url()).toMatch(/\/negotiate\/.*\/live/)
+          // Should stay on calculation page or navigate to live view
+          await expect(page.url()).toMatch(/\/calculate\/.*?/)
         }
       }
     })
@@ -87,13 +87,13 @@ test.describe("Cost Negotiation E2E", () => {
 
   test.describe("Live Negotiation Session", () => {
     test.beforeEach(async ({ page }) => {
-      // Navigate directly to live negotiation
-      await page.goto("/dashboard/groups/123/negotiate/456/live")
+      // Navigate directly to calculation page with live negotiation
+      await page.goto("/dashboard/groups/123/calculate/456")
     })
 
     test("should display live negotiation interface", async ({ page }) => {
       const isLoginPage = page.url().includes("/login")
-      const isNegotiationPage = page.url().includes("/negotiate") && page.url().includes("/live")
+      const isCalculationPage = page.url().includes("/calculate")
 
       if (isLoginPage) {
         // Expected for unauthenticated users
@@ -101,7 +101,7 @@ test.describe("Cost Negotiation E2E", () => {
         return
       }
 
-      if (isNegotiationPage) {
+      if (isCalculationPage) {
         // Look for negotiation interface elements
         const negotiationElements = [
           page.getByText(/live.*onderhandeling|live.*negotiation/i),
@@ -124,9 +124,9 @@ test.describe("Cost Negotiation E2E", () => {
     })
 
     test("should show property information in negotiation header", async ({ page }) => {
-      const isNegotiationPage = page.url().includes("/negotiate") && page.url().includes("/live")
+      const isCalculationPage = page.url().includes("/calculate")
 
-      if (isNegotiationPage) {
+      if (isCalculationPage) {
         // Property info should be displayed
         const propertyElements = [
           page.getByText(/🏠|property|woning/i),
@@ -149,9 +149,9 @@ test.describe("Cost Negotiation E2E", () => {
     })
 
     test("should allow adjusting cost percentage with slider", async ({ page }) => {
-      const isNegotiationPage = page.url().includes("/negotiate") && page.url().includes("/live")
+      const isCalculationPage = page.url().includes("/calculate")
 
-      if (isNegotiationPage) {
+      if (isCalculationPage) {
         // Look for percentage slider or input
         const slider = page.locator("input[type='range'], .slider-root, [role='slider']")
         const percentageInput = page.locator("input[type='number']").filter({ hasText: /\d+/ })
@@ -181,9 +181,9 @@ test.describe("Cost Negotiation E2E", () => {
     })
 
     test("should show confirmation button for percentage", async ({ page }) => {
-      const isNegotiationPage = page.url().includes("/negotiate") && page.url().includes("/live")
+      const isCalculationPage = page.url().includes("/calculate")
 
-      if (isNegotiationPage) {
+      if (isCalculationPage) {
         // Look for confirm button
         const confirmButton = page.getByRole("button", { name: /confirm|bevestig|lock.*in/i })
 
@@ -197,9 +197,9 @@ test.describe("Cost Negotiation E2E", () => {
     })
 
     test("should show back navigation to calculation", async ({ page }) => {
-      const isNegotiationPage = page.url().includes("/negotiate") && page.url().includes("/live")
+      const isCalculationPage = page.url().includes("/calculate")
 
-      if (isNegotiationPage) {
+      if (isCalculationPage) {
         // Look for back button or link
         const backButton = page
           .getByRole("button", { name: /back|terug|calculation|berekening/i })
@@ -211,16 +211,16 @@ test.describe("Cost Negotiation E2E", () => {
           // Click and verify navigation
           await backButton.click()
 
-          // Should navigate back to calculation page
+          // Should stay on calculation page
           await expect(page.url()).toMatch(/\/calculate\//)
         }
       }
     })
 
     test("should display session members and their status", async ({ page }) => {
-      const isNegotiationPage = page.url().includes("/negotiate") && page.url().includes("/live")
+      const isCalculationPage = page.url().includes("/calculate")
 
-      if (isNegotiationPage) {
+      if (isCalculationPage) {
         // Look for member list or status indicators
         const memberElements = [
           page.getByText(/member|participant|deelnemer/i),
@@ -251,9 +251,9 @@ test.describe("Cost Negotiation E2E", () => {
     })
 
     test("should handle real-time updates gracefully", async ({ page }) => {
-      const isNegotiationPage = page.url().includes("/negotiate") && page.url().includes("/live")
+      const isCalculationPage = page.url().includes("/calculate")
 
-      if (isNegotiationPage) {
+      if (isCalculationPage) {
         // Wait for initial load
         await page.waitForTimeout(2000)
 

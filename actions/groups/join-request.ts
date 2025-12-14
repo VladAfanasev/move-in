@@ -5,8 +5,8 @@ import { and, eq } from "drizzle-orm"
 import { redirect } from "next/navigation"
 import { db } from "@/db/client"
 import { buyingGroups, groupJoinRequests, groupMembers, profiles } from "@/db/schema"
-import { createClient } from "@/lib/supabase/server"
 import { notifyJoinRequest } from "@/lib/realtime-notifications"
+import { createClient } from "@/lib/supabase/server"
 
 export async function createJoinRequestAction(groupId: string, message?: string) {
   const supabase = await createClient()

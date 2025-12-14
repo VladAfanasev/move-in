@@ -3,8 +3,8 @@
 import { and, eq } from "drizzle-orm"
 import { db } from "@/db/client"
 import { groupJoinRequests, groupMembers } from "@/db/schema"
-import { createClient } from "@/lib/supabase/server"
 import { notifyMemberApproved } from "@/lib/realtime-notifications"
+import { createClient } from "@/lib/supabase/server"
 
 export async function approveJoinRequestAction(requestId: string) {
   const supabase = await createClient()

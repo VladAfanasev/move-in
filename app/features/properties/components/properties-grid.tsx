@@ -1,6 +1,6 @@
 "use client"
 
-import { PropertyCard } from "@/components/property-card"
+import { PropertyCard } from "@/app/features/properties/components/property-card"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Property } from "@/lib/types"
 

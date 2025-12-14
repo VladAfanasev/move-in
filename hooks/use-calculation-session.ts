@@ -42,10 +42,10 @@ export function useCalculationSession({
     // TODO: Implement socket.io server in a separate process or use different real-time solution
     console.log("Socket connection temporarily disabled")
     setIsConnected(false)
-    
+
     // Mock some initial data
     setOnlineMembers([userId])
-    
+
     return () => {
       // cleanup
     }
@@ -193,11 +193,10 @@ export function useCalculationSession({
         status,
       })
     } else {
-      // Mock functionality when socket is disabled  
+      // Mock functionality when socket is disabled
       console.log("Mock emit status change:", { status })
     }
   }
-
 
   const getOnlineMemberCount = () => {
     return onlineMembers.length

@@ -3,7 +3,11 @@ import { db } from "@/db/client"
 import { profiles } from "@/db/schema"
 
 // Function to send real-time notification about new member being approved
-export async function notifyMemberApproved(groupId: string, propertyId: string, newMemberId: string) {
+export async function notifyMemberApproved(
+  groupId: string,
+  propertyId: string,
+  newMemberId: string,
+) {
   try {
     // Get new member's profile to get their name
     const memberProfile = await db
@@ -30,7 +34,7 @@ export async function notifyMemberApproved(groupId: string, propertyId: string, 
     }
 
     console.log("Member approved notification:", notificationData)
-    
+
     // TODO: Emit to Socket.IO server when available
     // io.to(sessionId).emit("member-approved", notificationData)
 
@@ -68,7 +72,7 @@ export async function notifyJoinRequest(groupId: string, propertyId: string, req
     }
 
     console.log("Join request notification:", notificationData)
-    
+
     // TODO: Emit to Socket.IO server when available
     // io.to(sessionId).emit("join-request", notificationData)
 

@@ -1,9 +1,9 @@
 "use client"
 
-import { PropertyListItem } from "@/components/property-list-item"
+import { PropertyListItem } from "@/app/features/properties/components/property-list-item"
+import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { Property } from "@/lib/types"
-import { Separator } from "./ui/separator"
 
 interface PropertiesListProps {
   properties: Property[]
