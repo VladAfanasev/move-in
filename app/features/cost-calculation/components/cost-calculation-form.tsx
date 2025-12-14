@@ -7,6 +7,7 @@ import { CalculationInvitePopover } from "@/app/features/cost-calculation/compon
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { PropertyGoalIndicator } from "@/components/ui/property-goal-indicator"
 import { Slider } from "@/components/ui/slider"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useCalculationSession } from "@/hooks/use-calculation-session"
@@ -198,7 +199,7 @@ export function CostCalculationForm({
         userId: member.userId,
         name:
           member.userId === currentUser.id
-            ? "You"
+            ? `${member.fullName || member.email?.split("@")[0] || "Unknown User"} (U)`
             : member.fullName || member.email?.split("@")[0] || `Member ${index + 1}`,
         percentage: member.userId === currentUser.id ? yourPercentage : 25,
         status: "adjusting" as const,
@@ -211,25 +212,6 @@ export function CostCalculationForm({
   useEffect(() => {
     initializeSessionMembers()
   }, [initializeSessionMembers])
-
-  const getProgressMessage = () => {
-    if (totalPercentage < 95) {
-      return `Nog nodig: ${(100 - totalPercentage).toFixed(1)}%`
-    }
-    if (totalPercentage >= 95 && totalPercentage < 100) {
-      return `Bijna daar! ${(100 - totalPercentage).toFixed(1)}% resterend`
-    }
-    if (totalPercentage === 100 && allConfirmed) {
-      return "🎉 ALLE LEDEN BEVESTIGD"
-    }
-    if (totalPercentage === 100) {
-      return "100% bereikt! Wachten op bevestiging van iedereen..."
-    }
-    if (totalPercentage > 100) {
-      return `Over de limiet! ${(totalPercentage - 100).toFixed(1)}% te veel`
-    }
-    return ""
-  }
 
   if (loading) {
     return (
@@ -251,39 +233,20 @@ export function CostCalculationForm({
     <TooltipProvider delayDuration={50}>
       <div className="space-y-4">
         {/* Investment Negotiation - Main Focus */}
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
           {/* Progress & Your Investment */}
-          <div className="space-y-4 lg:col-span-2">
-            {/* Total Progress */}
+          <div className="space-y-4 lg:col-span-1 xl:col-span-2">
+            {/* Goal Progress Indicator */}
             <Card>
-              <CardContent className="pt-4">
-                <div className="mb-4">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="font-semibold">Totale dekking</span>
-                    <span
-                      className={`font-semibold text-lg ${
-                        totalPercentage === 100 ? "text-green-600" : ""
-                      }`}
-                    >
-                      {totalPercentage % 1 === 0
-                        ? `${totalPercentage.toFixed(0)}%`
-                        : `${totalPercentage.toFixed(1)}%`}
-                    </span>
-                  </div>
-                  <Progress value={Math.min(100, totalPercentage)} className="h-3" />
-                  <div
-                    className={`mt-2 text-center ${
-                      totalPercentage === 100 && allConfirmed
-                        ? "text-green-600"
-                        : totalPercentage > 100
-                          ? "text-red-600"
-                          : totalPercentage >= 95
-                            ? "text-yellow-600"
-                            : "text-orange-600"
-                    }`}
-                  >
-                    <span className="font-medium text-sm">{getProgressMessage()}</span>
-                  </div>
+              <CardContent className="pt-6 pb-6">
+                <div className="flex justify-center">
+                  <PropertyGoalIndicator
+                    percentage={totalPercentage}
+                    allConfirmed={allConfirmed}
+                    memberCount={sessionMembers.length}
+                    size="md"
+                    showMessage={true}
+                  />
                 </div>
               </CardContent>
             </Card>
@@ -359,7 +322,9 @@ export function CostCalculationForm({
                     <div>
                       <div className="mb-3 flex items-center justify-between">
                         <span className="font-medium">Percentage</span>
-                        <span className="font-semibold text-xl">{yourPercentage.toFixed(1)}%</span>
+                        <span className="font-semibold text-xl transition-all duration-300 ease-out">
+                          {yourPercentage.toFixed(1)}%
+                        </span>
                       </div>
                       <Slider
                         value={[yourPercentage]}
@@ -376,8 +341,10 @@ export function CostCalculationForm({
                       </div>
                     </div>
 
-                    <div className="rounded-lg bg-muted p-4 text-center">
-                      <div className="font-semibold text-2xl">{formatCurrency(yourAmount)}</div>
+                    <div className="rounded-lg bg-muted p-4 text-center transition-all duration-300 ease-out">
+                      <div className="font-semibold text-2xl transition-all duration-500 ease-out">
+                        {formatCurrency(yourAmount)}
+                      </div>
                       <div className="text-muted-foreground text-sm">Jouw investering</div>
                     </div>
 
@@ -396,14 +363,32 @@ export function CostCalculationForm({
                   </>
                 ) : (
                   <>
-                    <div className="rounded-lg bg-green-50 p-4 text-center">
-                      <div className="mt-2 font-semibold text-2xl">
+                    <div className="motion-safe:fade-in relative rounded-lg border border-green-200 bg-green-50 p-4 text-center shadow-sm motion-safe:animate-in motion-safe:duration-500 dark:border-green-800 dark:bg-green-900/20">
+                      {/* Success indicator */}
+                      <div
+                        className="-top-2 -right-2 motion-safe:zoom-in absolute flex h-6 w-6 items-center justify-center rounded-full bg-green-500 motion-safe:animate-in motion-safe:delay-200 motion-safe:duration-300"
+                        role="status"
+                        aria-label="Succesvol bevestigd"
+                      >
+                        <Check className="h-3 w-3 text-white" aria-hidden="true" />
+                      </div>
+
+                      <div className="mt-2 font-semibold text-2xl text-green-700 transition-all duration-500 dark:text-green-300">
                         {yourPercentage.toFixed(1)}%
                       </div>
-                      <div className="font-medium">{formatCurrency(yourAmount)}</div>
+                      <div className="font-medium text-green-600 transition-all duration-500 dark:text-green-400">
+                        {formatCurrency(yourAmount)}
+                      </div>
+                      <div className="mt-1 text-green-600/80 text-xs dark:text-green-400/80">
+                        ✓ Bevestigd
+                      </div>
                     </div>
 
-                    <Button onClick={handleChangeMind} variant="outline" className="w-full">
+                    <Button
+                      onClick={handleChangeMind}
+                      variant="outline"
+                      className="w-full border-green-200 text-green-700 transition-all duration-300 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/20"
+                    >
                       Verander mijn aandeel
                     </Button>
                   </>
@@ -443,47 +428,101 @@ export function CostCalculationForm({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
+                <div className="space-y-2 sm:space-y-3">
                   {sessionMembers.map(member => {
                     const isYou = member.userId === currentUser.id
                     const displayStatus = isYou ? yourStatus : member.status
                     const currentPercentage = isYou ? yourPercentage : member.percentage
+                    const memberAmount = (totalCosts * currentPercentage) / 100
 
                     return (
                       <div
                         key={member.userId}
-                        className={`space-y-3 rounded-lg p-4 ${
-                          isYou ? "border border-primary/20 bg-primary/5" : "bg-muted/50"
+                        className={`relative overflow-hidden rounded-xl transition-all duration-300 ${
+                          displayStatus === "confirmed"
+                            ? "border-2 border-green-500 bg-green-50/50 shadow-lg dark:border-green-400 dark:bg-green-900/20"
+                            : isYou
+                              ? "border-2 border-primary bg-primary/5 shadow-lg"
+                              : "border border-muted bg-card/50 hover:bg-card/80 hover:shadow-sm"
                         }`}
                       >
-                        {/* Header: Name and Status */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-sm">{member.name}</span>
-                            {member.isOnline && (
-                              <div className="h-2 w-2 rounded-full bg-green-500" title="Online" />
+
+                        <div className="space-y-3 p-4">
+                          {/* Header with name, status, and online indicator */}
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              {/* Member avatar circle */}
+                              <div
+                                className={`flex h-10 w-10 items-center justify-center rounded-full font-semibold text-sm ${
+                                  isYou
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {member.name.charAt(0).toUpperCase()}
+                              </div>
+
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <span className={`font-medium ${isYou ? "text-primary" : ""}`}>
+                                    {member.name}
+                                  </span>
+                                  {member.isOnline && (
+                                    <div className="relative">
+                                      <div
+                                        className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm"
+                                        title="Online nu"
+                                        aria-label="Online nu"
+                                      />
+                                      {/* Breathing animation ring */}
+                                      <div
+                                        className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-green-400/50 motion-safe:animate-ping"
+                                        aria-hidden="true"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="text-muted-foreground text-xs">
+                                  {displayStatus === "confirmed"
+                                    ? "Bevestigd"
+                                    : "Aan het aanpassen"}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Confirmation badge */}
+                            {displayStatus === "confirmed" && (
+                              <div
+                                className="motion-safe:zoom-in flex h-8 w-8 items-center justify-center rounded-full bg-green-100 shadow-md motion-safe:animate-in motion-safe:duration-300 dark:bg-green-900/30"
+                                role="status"
+                                aria-label="Bevestigd"
+                              >
+                                <Check className="motion-safe:zoom-in h-4 w-4 text-green-600 motion-safe:animate-in motion-safe:delay-150 dark:text-green-400" />
+                              </div>
                             )}
                           </div>
-                          {displayStatus === "confirmed" && (
-                            <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-600">
-                              <Check className="h-3 w-3 text-white" />
+
+                          {/* Investment details */}
+                          <div className="space-y-2">
+                            {/* Percentage and amount with smooth transitions */}
+                            <div className="flex items-baseline justify-between">
+                              <span className="font-bold text-2xl text-foreground transition-all duration-500 ease-out">
+                                {currentPercentage.toFixed(1)}%
+                              </span>
+                              <span className="font-medium text-muted-foreground text-sm transition-all duration-500 ease-out">
+                                {formatCurrency(memberAmount)}
+                              </span>
                             </div>
-                          )}
-                        </div>
 
-                        {/* Percentage and Amount */}
-                        <div className="space-y-1">
-                          <div className="flex items-center justify-between">
-                            <span className="font-semibold text-lg">
-                              {currentPercentage.toFixed(1)}%
-                            </span>
-                            <span className="text-muted-foreground text-sm">
-                              {formatCurrency((totalCosts * currentPercentage) / 100)}
-                            </span>
+                            {/* Visual progress indicator with smooth animation */}
+                            <div>
+                              <Progress
+                                value={currentPercentage}
+                                className="h-1.5 transition-all duration-700 ease-out"
+                                max={100}
+                              />
+                            </div>
                           </div>
-
-                          {/* Progress Bar */}
-                          <Progress value={currentPercentage} className="h-2" max={100} />
                         </div>
                       </div>
                     )
