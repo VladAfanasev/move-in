@@ -10,10 +10,14 @@ interface JoinGroupPageProps {
   params: Promise<{
     groupId: string
   }>
+  searchParams: Promise<{
+    redirect?: string
+  }>
 }
 
-export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
+export default async function JoinGroupPage({ params, searchParams }: JoinGroupPageProps) {
   const { groupId } = await params
+  const { redirect } = await searchParams
   const supabase = await createClient()
 
   // Dynamic imports to avoid build-time database connection
@@ -95,6 +99,7 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
             {user ? (
               // User is logged in but not a member
               <form action={`/join/${groupId}/confirm`} method="post">
+                {redirect && <input type="hidden" name="redirect" value={redirect} />}
                 <Button type="submit" className="w-full">
                   Lid worden van deze groep
                 </Button>
@@ -103,11 +108,17 @@ export default async function JoinGroupPage({ params }: JoinGroupPageProps) {
               // User not logged in
               <>
                 <Button asChild className="w-full">
-                  <Link href={`/login?returnTo=/join/${groupId}`}>Inloggen en lid worden</Link>
+                  <Link
+                    href={`/login?returnTo=/join/${groupId}${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+                  >
+                    Inloggen en lid worden
+                  </Link>
                 </Button>
 
                 <Button asChild variant="outline" className="w-full">
-                  <Link href={`/register?returnTo=/join/${groupId}`}>
+                  <Link
+                    href={`/register?returnTo=/join/${groupId}${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+                  >
                     Account aanmaken en lid worden
                   </Link>
                 </Button>

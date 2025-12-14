@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation"
 import { useState } from "react"
-import { PropertiesGrid } from "@/components/properties-grid"
-import { PropertiesHeader } from "@/components/properties-header"
+import { PropertiesGrid } from "@/app/features/properties/components/properties-grid"
+import { PropertiesHeader } from "@/app/features/properties/components/properties-header"
 import type { Property } from "@/lib/types"
 
 interface PropertiesListClientProps {

@@ -1,6 +1,6 @@
 import { Suspense } from "react"
-import { PropertiesList } from "@/components/properties-list"
-import { PropertiesListWithFilters } from "@/components/properties-list-with-filters"
+import { PropertiesList } from "@/app/features/properties/components/properties-list"
+import { PropertiesListWithFilters } from "@/app/features/properties/components/properties-list-with-filters"
 import { SiteHeader } from "@/components/site-header"
 import { getProperties } from "@/lib/properties"
 

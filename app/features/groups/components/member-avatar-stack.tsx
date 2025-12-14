@@ -3,7 +3,7 @@
 import { Users } from "lucide-react"
 import { useCallback, useEffect, useState } from "react"
 import { getJoinRequestsAction } from "@/actions/groups/join-request"
-import { CompactMemberList } from "@/components/compact-member-list"
+import { CompactMemberList } from "@/app/features/groups/components/compact-member-list"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -189,7 +189,7 @@ export function MemberAvatarStack({
         <div className="space-y-4">
           <div className="flex items-center space-x-2">
             <Users className="h-4 w-4 text-muted-foreground" />
-            <h4 className="font-medium">Members</h4>
+            <h4 className="font-medium">Groepsleden</h4>
             <span className="text-muted-foreground text-sm">({activeMembers.length})</span>
           </div>
 

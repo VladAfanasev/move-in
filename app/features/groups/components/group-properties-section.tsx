@@ -4,7 +4,7 @@ import { Home, Plus } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useState } from "react"
-import { GroupPropertyCard } from "@/components/group-property-card"
+import { GroupPropertyCard } from "@/app/features/groups/components/group-property-card"
 import { Button } from "@/components/ui/button"
 
 interface GroupProperty {

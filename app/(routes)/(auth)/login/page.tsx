@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation"
 import { Suspense, useEffect } from "react"
 import { useAuth } from "@/app/auth/auth-provider"
-import { LoginForm } from "@/components/login-form"
+import { LoginForm } from "@/app/features/auth/components/login-form"
 
 function LoginContent() {
   const { user, loading } = useAuth()

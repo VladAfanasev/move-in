@@ -3,6 +3,7 @@
 import { and, eq } from "drizzle-orm"
 import { db } from "@/db/client"
 import { groupJoinRequests, groupMembers } from "@/db/schema"
+import { notifyMemberApproved } from "@/lib/realtime-notifications"
 import { createClient } from "@/lib/supabase/server"
 
 export async function approveJoinRequestAction(requestId: string) {
@@ -133,6 +134,15 @@ export async function approveJoinRequestAction(requestId: string) {
       .where(eq(groupJoinRequests.id, requestId))
   } catch (error) {
     console.error("Failed to update join request status:", error)
+  }
+
+  // Send real-time notification to active calculation sessions
+  // Note: We don't have propertyId in join request, so we'll notify all active sessions for this group
+  try {
+    await notifyMemberApproved(requestData.groupId, "all", requestData.userId)
+  } catch (error) {
+    console.error("Failed to send real-time notification:", error)
+    // Don't fail the approval process for notification errors
   }
 
   return {

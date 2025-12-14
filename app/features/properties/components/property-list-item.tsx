@@ -3,7 +3,7 @@
 import clsx from "clsx"
 import { Bath, Bed, VectorSquare } from "lucide-react"
 import Image from "next/image"
-import { AddPropertyToGroup } from "@/components/add-property-to-group"
+import { AddPropertyToGroup } from "@/app/features/properties/components/add-property-to-group"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import type { Property } from "@/lib/types"

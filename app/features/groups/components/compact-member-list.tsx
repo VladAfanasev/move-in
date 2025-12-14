@@ -224,7 +224,7 @@ export function CompactMemberList({
       })}
 
       {/* Join Requests Section - only show if there are requests or we're loading */}
-      {canViewRequests && (loadingRequests || joinRequests.length > 0) && (
+      {canViewRequests && joinRequests.length > 0 && (
         <>
           <Separator />
           <div className="space-y-2">

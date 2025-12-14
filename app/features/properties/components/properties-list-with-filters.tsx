@@ -2,12 +2,12 @@
 
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
-import { PropertiesHeader } from "@/components/properties-header"
-import { PropertiesList } from "@/components/properties-list"
+import { PropertiesHeader } from "@/app/features/properties/components/properties-header"
+import { PropertiesList } from "@/app/features/properties/components/properties-list"
 import {
   PropertyFilters,
   type PropertyFilters as PropertyFiltersType,
-} from "@/components/property-filters"
+} from "@/app/features/properties/components/property-filters"
 import type { Property } from "@/lib/types"
 
 interface PropertiesListWithFiltersProps {
