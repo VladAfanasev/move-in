@@ -10,7 +10,7 @@ import { Progress } from "@/components/ui/progress"
 import { PropertyGoalIndicator } from "@/components/ui/property-goal-indicator"
 import { Slider } from "@/components/ui/slider"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { useCalculationSession } from "@/hooks/use-calculation-session"
+import { useRealtimeSession } from "@/hooks/use-realtime-session"
 
 interface Property {
   id: string
@@ -65,24 +65,45 @@ export function CostCalculationForm({
   const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
   const [loading, setLoading] = useState(true)
 
-  // Get current user's name from members list
-  const currentMember = _members.find(m => m.userId === currentUser.id)
-  const currentUserName = currentMember?.fullName || currentUser.email || "Unknown User"
-
   // Real-time session management
-  const {
-    isConnected,
-    onlineMembers,
-    emitPercentageUpdate,
-    emitStatusChange,
-    getOnlineMemberCount,
-  } = useCalculationSession({
-    sessionId: `${group.id}-${property.id}`, // Create session ID from group and property
-    userId: currentUser.id,
-    userName: currentUserName,
-    groupId: group.id,
-    propertyId: property.id,
-  })
+  const { onlineMembers, emitPercentageUpdate, emitStatusChange, getOnlineMemberCount } =
+    useRealtimeSession({
+      sessionId: `${group.id}-${property.id}`, // Use group-property format for real-time
+      userId: currentUser.id,
+      onPercentageUpdate: data => {
+        // Update session members when receiving real-time percentage updates
+        setSessionMembers(prev =>
+          prev.map(member =>
+            member.userId === data.userId
+              ? {
+                  ...member,
+                  percentage: data.percentage,
+                  status: data.status as "adjusting" | "confirmed",
+                }
+              : member,
+          ),
+        )
+      },
+      onStatusChange: data => {
+        // Update session members when receiving real-time status changes
+        setSessionMembers(prev =>
+          prev.map(member =>
+            member.userId === data.userId
+              ? { ...member, status: data.status as "adjusting" | "confirmed" }
+              : member,
+          ),
+        )
+      },
+      onOnlineMembersChange: members => {
+        // Update online status for all session members
+        setSessionMembers(prev =>
+          prev.map(member => ({
+            ...member,
+            isOnline: members.includes(member.userId),
+          })),
+        )
+      },
+    })
 
   // Initialize session members from actual group members
   useEffect(() => {
@@ -365,12 +386,18 @@ export function CostCalculationForm({
                   <>
                     <div className="motion-safe:fade-in relative rounded-lg border border-green-200 bg-green-50 p-4 text-center shadow-sm motion-safe:animate-in motion-safe:duration-500 dark:border-green-800 dark:bg-green-900/20">
                       {/* Success indicator */}
-                      <div
-                        className="-top-2 -right-2 motion-safe:zoom-in absolute flex h-6 w-6 items-center justify-center rounded-full bg-green-500 motion-safe:animate-in motion-safe:delay-200 motion-safe:duration-300"
-                        role="status"
-                        aria-label="Succesvol bevestigd"
-                      >
-                        <Check className="h-3 w-3 text-white" aria-hidden="true" />
+                      <div className="-top-3 -right-3 absolute">
+                        <output
+                          className="motion-safe:zoom-in motion-safe:bounce-in flex h-8 w-8 items-center justify-center rounded-full bg-green-500 shadow-lg motion-safe:animate-in motion-safe:duration-500"
+                          aria-label="Succesvol bevestigd"
+                        >
+                          <Check
+                            className="motion-safe:zoom-in h-4 w-4 text-white motion-safe:animate-in motion-safe:delay-300 motion-safe:duration-300"
+                            aria-hidden="true"
+                          />
+                        </output>
+                        {/* Pulse ring animation for extra attention */}
+                        <div className="absolute inset-0 h-8 w-8 animate-ping-limited rounded-full bg-green-400/30" />
                       </div>
 
                       <div className="mt-2 font-semibold text-2xl text-green-700 transition-all duration-500 dark:text-green-300">
@@ -446,7 +473,6 @@ export function CostCalculationForm({
                               : "border border-muted bg-card/50 hover:bg-card/80 hover:shadow-sm"
                         }`}
                       >
-
                         <div className="space-y-3 p-4">
                           {/* Header with name, status, and online indicator */}
                           <div className="flex items-center justify-between">
@@ -472,7 +498,6 @@ export function CostCalculationForm({
                                       <div
                                         className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm"
                                         title="Online nu"
-                                        aria-label="Online nu"
                                       />
                                       {/* Breathing animation ring */}
                                       <div
@@ -492,12 +517,15 @@ export function CostCalculationForm({
 
                             {/* Confirmation badge */}
                             {displayStatus === "confirmed" && (
-                              <div
-                                className="motion-safe:zoom-in flex h-8 w-8 items-center justify-center rounded-full bg-green-100 shadow-md motion-safe:animate-in motion-safe:duration-300 dark:bg-green-900/30"
-                                role="status"
-                                aria-label="Bevestigd"
-                              >
-                                <Check className="motion-safe:zoom-in h-4 w-4 text-green-600 motion-safe:animate-in motion-safe:delay-150 dark:text-green-400" />
+                              <div className="relative">
+                                <output
+                                  className="motion-safe:zoom-in motion-safe:bounce-in flex h-10 w-10 items-center justify-center rounded-full bg-green-500 shadow-lg motion-safe:animate-in motion-safe:duration-500 dark:bg-green-600"
+                                  aria-label="Bevestigd"
+                                >
+                                  <Check className="motion-safe:zoom-in h-6 w-6 text-white motion-safe:animate-in motion-safe:delay-300 motion-safe:duration-300" />
+                                </output>
+                                {/* Pulse ring animation for extra attention */}
+                                <div className="absolute inset-0 h-10 w-10 animate-ping-limited rounded-full bg-green-400/30" />
                               </div>
                             )}
                           </div>
