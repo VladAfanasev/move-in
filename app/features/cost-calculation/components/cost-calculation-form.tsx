@@ -2,7 +2,7 @@
 
 import type { User } from "@supabase/supabase-js"
 import { Check, Plus, Scale, Target, User as UserIcon } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CalculationInvitePopover } from "@/app/features/cost-calculation/components/calculation-invite-popover"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -66,44 +66,53 @@ export function CostCalculationForm({
   const [loading, setLoading] = useState(true)
 
   // Real-time session management
-  const { onlineMembers, emitPercentageUpdate, emitStatusChange, getOnlineMemberCount } =
-    useRealtimeSession({
-      sessionId: `${group.id}-${property.id}`, // Use group-property format for real-time
-      userId: currentUser.id,
-      onPercentageUpdate: data => {
-        // Update session members when receiving real-time percentage updates
-        setSessionMembers(prev =>
-          prev.map(member =>
-            member.userId === data.userId
-              ? {
-                  ...member,
-                  percentage: data.percentage,
-                  status: data.status as "adjusting" | "confirmed",
-                }
-              : member,
-          ),
-        )
-      },
-      onStatusChange: data => {
-        // Update session members when receiving real-time status changes
-        setSessionMembers(prev =>
-          prev.map(member =>
-            member.userId === data.userId
-              ? { ...member, status: data.status as "adjusting" | "confirmed" }
-              : member,
-          ),
-        )
-      },
-      onOnlineMembersChange: members => {
-        // Update online status for all session members
-        setSessionMembers(prev =>
-          prev.map(member => ({
-            ...member,
-            isOnline: members.includes(member.userId),
-          })),
-        )
-      },
-    })
+  const {
+    onlineMembers,
+    isConnected,
+    connectionQuality,
+    emitPercentageUpdate,
+    emitStatusChange,
+    getOnlineMemberCount,
+  } = useRealtimeSession({
+    sessionId: `${group.id}-${property.id}`, // Use group-property format for real-time
+    userId: currentUser.id,
+    onPercentageUpdate: data => {
+      console.log("Processing percentage update from remote user:", data)
+      // Update session members when receiving real-time percentage updates
+      setSessionMembers(prev =>
+        prev.map(member =>
+          member.userId === data.userId
+            ? {
+                ...member,
+                percentage: data.percentage,
+                status: data.status as "adjusting" | "confirmed",
+              }
+            : member,
+        ),
+      )
+    },
+    onStatusChange: data => {
+      console.log("Processing status change from remote user:", data)
+      // Update session members when receiving real-time status changes
+      setSessionMembers(prev =>
+        prev.map(member =>
+          member.userId === data.userId
+            ? { ...member, status: data.status as "adjusting" | "confirmed" }
+            : member,
+        ),
+      )
+    },
+    onOnlineMembersChange: members => {
+      console.log("Online members changed:", members)
+      // Update online status for all session members
+      setSessionMembers(prev =>
+        prev.map(member => ({
+          ...member,
+          isOnline: members.includes(member.userId),
+        })),
+      )
+    },
+  })
 
   // Initialize session members from actual group members
   useEffect(() => {
@@ -113,14 +122,15 @@ export function CostCalculationForm({
         .map(member => ({
           userId: member.userId,
           name: member.fullName || member.email || "Unknown User",
-          percentage: 25, // Default percentage
+          percentage: member.userId === currentUser.id ? yourPercentage : 25, // Use current percentage for self
           status: "adjusting" as const,
           isOnline: onlineMembers.includes(member.userId), // Check if online
         }))
 
       setSessionMembers(initialMembers)
+      setLoading(false)
     }
-  }, [_members, sessionMembers.length, onlineMembers])
+  }, [_members, sessionMembers.length, onlineMembers, currentUser.id, yourPercentage])
 
   // Update online status when online members change
   useEffect(() => {
@@ -148,16 +158,18 @@ export function CostCalculationForm({
     member.userId === currentUser.id ? yourStatus === "confirmed" : member.status === "confirmed",
   )
 
+  // Debounced emit function
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+
   // Handle percentage change
   const handlePercentageChange = (newPercentage: number) => {
     if (yourStatus === "confirmed" || isSessionLocked) return
+
+    // Update local state first for immediate UI feedback
     setYourPercentage(newPercentage)
     setYourStatus("adjusting")
 
-    // Emit real-time update
-    emitPercentageUpdate(newPercentage, "adjusting")
-
-    // Update session members locally for immediate feedback
+    // Update session members locally for immediate feedback (only for current user)
     setSessionMembers(prev =>
       prev.map(member =>
         member.userId === currentUser.id
@@ -165,6 +177,15 @@ export function CostCalculationForm({
           : member,
       ),
     )
+
+    // Debounced emit to avoid spam during rapid slider movements
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      emitPercentageUpdate(newPercentage, "adjusting")
+    }, 150) // 150ms debounce for smoother UX
   }
 
   // Handle confirm
@@ -212,27 +233,14 @@ export function CostCalculationForm({
     }).format(amount)
   }
 
-  // Initialize session members
-  const initializeSessionMembers = useCallback(() => {
-    const members = _members
-      .filter(m => m.status === "active")
-      .map((member, index) => ({
-        userId: member.userId,
-        name:
-          member.userId === currentUser.id
-            ? `${member.fullName || member.email?.split("@")[0] || "Unknown User"} (U)`
-            : member.fullName || member.email?.split("@")[0] || `Member ${index + 1}`,
-        percentage: member.userId === currentUser.id ? yourPercentage : 25,
-        status: "adjusting" as const,
-      }))
-    setSessionMembers(members)
-    setLoading(false)
-  }, [_members, currentUser.id, yourPercentage])
-
-  // Initialize on component mount
+  // Cleanup debounce timeout on unmount
   useEffect(() => {
-    initializeSessionMembers()
-  }, [initializeSessionMembers])
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -434,10 +442,28 @@ export function CostCalculationForm({
                       <UserIcon className="h-4 w-4" />
                       <div>
                         <span>Groepsleden</span>
-                        <div className="font-normal text-muted-foreground text-xs">
-                          {getOnlineMemberCount()}{" "}
-                          {getOnlineMemberCount() === 1 ? "lid actief" : "leden actief"} in deze
-                          sessie
+                        <div className="flex items-center gap-2">
+                          <div className="font-normal text-muted-foreground text-xs">
+                            {getOnlineMemberCount()}{" "}
+                            {getOnlineMemberCount() === 1 ? "lid actief" : "leden actief"}
+                          </div>
+                          {/* Connection status indicator */}
+                          <div
+                            className={`h-2 w-2 rounded-full ${
+                              !isConnected
+                                ? "animate-pulse bg-red-500"
+                                : connectionQuality === "excellent"
+                                  ? "bg-green-500"
+                                  : connectionQuality === "good"
+                                    ? "bg-yellow-500"
+                                    : "bg-orange-500"
+                            }`}
+                            title={
+                              !isConnected
+                                ? "Verbinding verbroken"
+                                : `Verbinding: ${connectionQuality}`
+                            }
+                          />
                         </div>
                       </div>
                     </div>

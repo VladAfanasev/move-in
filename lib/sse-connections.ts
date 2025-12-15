@@ -76,7 +76,7 @@ export function broadcastToSession(
 
   if (!sessionConnections) {
     console.log(`No connections found for session ${sessionId}`)
-    return
+    return { success: false, error: "No connections found", sentCount: 0 }
   }
 
   const data = JSON.stringify({
@@ -85,31 +85,52 @@ export function broadcastToSession(
   })
 
   const disconnectedUsers: string[] = []
+  const failedUsers: string[] = []
   let sentCount = 0
 
   for (const [userId, controller] of sessionConnections) {
     if (excludeUserId && userId === excludeUserId) continue
 
     try {
+      // Check if controller is still valid
+      if (controller.desiredSize === null) {
+        console.log(`Controller for user ${userId} is closed, marking for removal`)
+        disconnectedUsers.push(userId)
+        continue
+      }
+
       controller.enqueue(`data: ${data}\n\n`)
       sentCount++
     } catch (error) {
       console.log(`Failed to send to user ${userId}, marking for removal:`, error)
       disconnectedUsers.push(userId)
+      failedUsers.push(userId)
     }
   }
 
   // Clean up disconnected users
   disconnectedUsers.forEach(userId => {
     sessionConnections.delete(userId)
+    console.log(`Removed disconnected user ${userId} from session ${sessionId}`)
   })
 
   // Clean up empty session
   if (sessionConnections.size === 0) {
     connections.delete(sessionId)
+    console.log(`Cleaned up empty session ${sessionId}`)
   }
 
-  console.log(`Broadcasted ${message.type} to ${sentCount} users in session ${sessionId}`)
+  const result = {
+    success: sentCount > 0 || sessionConnections.size === 0, // Success if we sent to someone or no one is connected
+    sentCount,
+    totalConnections: sessionConnections.size + disconnectedUsers.length,
+    disconnectedUsers,
+    failedUsers,
+  }
+
+  console.log(`Broadcasted ${message.type} to ${sentCount} users in session ${sessionId}`, result)
+
+  return result
 }
 
 export function notifyUserJoined(sessionId: string, userId: string) {
