@@ -8,17 +8,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 interface PendingGroupApprovalProps {
   groupName: string
   propertyAddress: string
-  onRefresh?: () => void
+  showJoinedAlert?: boolean
 }
 
 export function PendingGroupApproval({
   groupName,
   propertyAddress,
-  onRefresh,
+  showJoinedAlert = false,
 }: PendingGroupApprovalProps) {
+  const handleRefresh = () => {
+    window.location.reload()
+  }
   return (
     <div className="flex flex-1 items-center justify-center p-6">
-      <Card className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-4">
+        {showJoinedAlert && (
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="flex items-center gap-3 p-4">
+              <div className="h-2 w-2 rounded-full bg-green-500"></div>
+              <div className="flex-1">
+                <div className="font-medium text-green-800 text-sm">Verzoek verzonden!</div>
+                <div className="text-green-700 text-xs">
+                  Je aanvraag is succesvol verstuurd naar de groepseigenaar.
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        <Card className="w-full">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100">
             <Clock className="h-6 w-6 text-yellow-600" />
@@ -75,18 +93,17 @@ export function PendingGroupApproval({
 
           {/* Actions */}
           <div className="space-y-3">
-            {onRefresh && (
-              <Button variant="outline" onClick={onRefresh} className="w-full">
-                Status vernieuwen
-              </Button>
-            )}
+            <Button variant="outline" onClick={handleRefresh} className="w-full">
+              Status vernieuwen
+            </Button>
 
             <p className="text-center text-muted-foreground text-xs">
               Je krijgt automatisch toegang zodra je verzoek is goedgekeurd
             </p>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }

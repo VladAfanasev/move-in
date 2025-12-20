@@ -79,8 +79,10 @@ export async function POST(
       .limit(1)
 
     if (existingRequest.length > 0) {
-      // Request already exists, redirect to group page with pending status
-      redirect(`/dashboard/groups/${groupId}?joined=pending`)
+      // Request already exists, redirect to original URL or group page with pending status
+      const targetUrl = redirectUrl || `/dashboard/groups/${groupId}`
+      const separator = targetUrl.includes('?') ? '&' : '?'
+      redirect(`${targetUrl}${separator}joined=pending`)
     }
 
     // Generate secure token for this request
@@ -112,6 +114,8 @@ export async function POST(
     )
   }
 
-  // Redirect to the group page to show pending status
-  redirect(`/dashboard/groups/${groupId}?joined=pending`)
+  // Redirect to the original URL or group page to show pending status
+  const targetUrl = redirectUrl || `/dashboard/groups/${groupId}`
+  const separator = targetUrl.includes('?') ? '&' : '?'
+  redirect(`${targetUrl}${separator}joined=pending`)
 }

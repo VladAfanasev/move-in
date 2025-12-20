@@ -16,10 +16,14 @@ interface CostCalculationPageProps {
     id: string
     propertyId: string
   }>
+  searchParams: Promise<{
+    joined?: string
+  }>
 }
 
-export default async function CostCalculationPage({ params }: CostCalculationPageProps) {
+export default async function CostCalculationPage({ params, searchParams }: CostCalculationPageProps) {
   const { id: groupId, propertyId } = await params
+  const { joined } = await searchParams
 
   const supabase = await createClient()
   const {
@@ -28,7 +32,8 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    redirect("/auth/login")
+    const currentUrl = `/dashboard/groups/${groupId}/calculate/${propertyId}`
+    redirect(`/login?redirectTo=${encodeURIComponent(currentUrl)}`)
   }
 
   // Dynamic imports to avoid build-time database connection
@@ -80,9 +85,10 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
 
     hasPendingRequest = pendingRequest.length > 0
 
-    // If no active membership and no pending request, redirect to groups
+    // If no active membership and no pending request, redirect to group join page
     if (!hasPendingRequest) {
-      redirect("/dashboard/groups")
+      const currentUrl = `/dashboard/groups/${groupId}/calculate/${propertyId}`
+      redirect(`/join/${groupId}?redirect=${encodeURIComponent(currentUrl)}`)
     }
   }
 
@@ -135,7 +141,7 @@ export default async function CostCalculationPage({ params }: CostCalculationPag
         <PendingGroupApproval
           groupName={group.name}
           propertyAddress={`${property.address}, ${property.city}`}
-          onRefresh={() => window.location.reload()}
+          showJoinedAlert={joined === "pending"}
         />
       ) : null}
 
