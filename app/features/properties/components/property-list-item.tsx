@@ -101,16 +101,12 @@ export function PropertyListItem({ property, onViewDetails }: PropertyListItemPr
             <div>
               {/* Header */}
               <div className="mb-2 flex flex-col items-start space-y-4">
-                <button
-                  type="button"
-                  onClick={() => onViewDetails?.(property.id)}
-                  className="flex h-full flex-col text-left"
-                >
+                <div className="flex h-full flex-col text-left">
                   <h3 className="mb-1 line-clamp-1 font-semibold text-lg">{property.address}</h3>
                   <div className="flex items-center text-gray-600 text-sm">
                     {property.zipCode} {property.city}
                   </div>
-                </button>
+                </div>
                 <div className="grid gap-2">
                   <div
                     className={clsx(

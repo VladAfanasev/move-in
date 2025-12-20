@@ -22,7 +22,10 @@ export async function POST(
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    redirect(`/login?returnTo=/join/${groupId}`)
+    const loginRedirect = redirectUrl
+      ? `/login?redirectTo=/join/${groupId}?redirect=${encodeURIComponent(redirectUrl)}`
+      : `/login?redirectTo=/join/${groupId}`
+    redirect(loginRedirect)
   }
 
   // Dynamic imports to avoid build-time database connection

@@ -37,7 +37,10 @@ export function RegisterForm({ className, redirectTo, ...props }: RegisterFormPr
       if (result?.error) {
         setError(result.error)
       } else if (result?.success) {
-        router.push(redirectTo || "/dashboard")
+        // Server action handles redirect, only redirect if no redirectTo was provided
+        if (!redirectTo) {
+          router.push("/dashboard")
+        }
       }
     })
   }
