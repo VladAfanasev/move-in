@@ -15,7 +15,7 @@ interface PropertyListItemProps {
   isFavorite?: boolean
 }
 
-export function PropertyListItem({ property, onViewDetails }: PropertyListItemProps) {
+export function PropertyListItem({ property }: PropertyListItemProps) {
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price)
     return new Intl.NumberFormat("nl-NL", {

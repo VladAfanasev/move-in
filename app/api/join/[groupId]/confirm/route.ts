@@ -60,8 +60,8 @@ export async function POST(
     .limit(1)
 
   if (existingMember.length > 0) {
-    // User is already a member, redirect to specified page or group page
-    redirect(redirectUrl || `/dashboard/groups/${groupId}`)
+    // User is already a member, redirect to group page
+    redirect(`/dashboard/groups/${groupId}`)
   }
 
   try {
@@ -79,8 +79,8 @@ export async function POST(
       .limit(1)
 
     if (existingRequest.length > 0) {
-      // Request already exists, redirect to pending state
-      redirect(redirectUrl || `/dashboard/groups/${groupId}`)
+      // Request already exists, redirect to group page with pending status
+      redirect(`/dashboard/groups/${groupId}?joined=pending`)
     }
 
     // Generate secure token for this request
@@ -112,6 +112,6 @@ export async function POST(
     )
   }
 
-  // Redirect to the specified page or group page after successful join request
-  redirect(redirectUrl || `/dashboard/groups/${groupId}`)
+  // Redirect to the group page to show pending status
+  redirect(`/dashboard/groups/${groupId}?joined=pending`)
 }
