@@ -21,7 +21,10 @@ interface CostCalculationPageProps {
   }>
 }
 
-export default async function CostCalculationPage({ params, searchParams }: CostCalculationPageProps) {
+export default async function CostCalculationPage({
+  params,
+  searchParams,
+}: CostCalculationPageProps) {
   const { id: groupId, propertyId } = await params
   const { joined } = await searchParams
 

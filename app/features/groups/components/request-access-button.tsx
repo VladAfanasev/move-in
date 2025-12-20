@@ -19,7 +19,7 @@ export function RequestAccessButton({ groupId, children }: RequestAccessButtonPr
 
         // Submit form to join endpoint (same as regular join)
         const formData = new FormData()
-        
+
         const response = await fetch(`/api/join/${groupId}/confirm`, {
           method: "POST",
           body: formData,

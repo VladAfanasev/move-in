@@ -61,11 +61,11 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
 
   // Check if user is a member of this group
   const userMember = members.find((member: GroupMemberWithProfile) => member.userId === user.id)
-  
+
   // If user is not an active member, handle different scenarios
   if (!userMember || userMember.status !== "active") {
     const activeMemberCount = members.filter(
-      (m: GroupMemberWithProfile) => m.status === "active"
+      (m: GroupMemberWithProfile) => m.status === "active",
     ).length
 
     // If user was removed from the group, show no-access view
@@ -78,8 +78,8 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
           and(
             eq(groupJoinRequests.groupId, id),
             eq(groupJoinRequests.userId, user.id),
-            eq(groupJoinRequests.status, "pending")
-          )
+            eq(groupJoinRequests.status, "pending"),
+          ),
         )
         .limit(1)
 
@@ -120,8 +120,8 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
         and(
           eq(groupJoinRequests.groupId, id),
           eq(groupJoinRequests.userId, user.id),
-          eq(groupJoinRequests.status, "pending")
-        )
+          eq(groupJoinRequests.status, "pending"),
+        ),
       )
       .limit(1)
 

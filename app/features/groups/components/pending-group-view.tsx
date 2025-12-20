@@ -1,9 +1,9 @@
 import { ArrowLeft, Clock, Users } from "lucide-react"
 import Link from "next/link"
-import { PendingJoinAlert } from "./pending-join-alert"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PendingJoinAlert } from "./pending-join-alert"
 
 interface PendingGroupViewProps {
   groupName: string

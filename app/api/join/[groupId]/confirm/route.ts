@@ -81,7 +81,7 @@ export async function POST(
     if (existingRequest.length > 0) {
       // Request already exists, redirect to original URL or group page with pending status
       const targetUrl = redirectUrl || `/dashboard/groups/${groupId}`
-      const separator = targetUrl.includes('?') ? '&' : '?'
+      const separator = targetUrl.includes("?") ? "&" : "?"
       redirect(`${targetUrl}${separator}joined=pending`)
     }
 
@@ -116,6 +116,6 @@ export async function POST(
 
   // Redirect to the original URL or group page to show pending status
   const targetUrl = redirectUrl || `/dashboard/groups/${groupId}`
-  const separator = targetUrl.includes('?') ? '&' : '?'
+  const separator = targetUrl.includes("?") ? "&" : "?"
   redirect(`${targetUrl}${separator}joined=pending`)
 }
