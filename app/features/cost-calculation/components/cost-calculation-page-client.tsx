@@ -169,112 +169,118 @@ export function CostCalculationPageClient({
 
   return (
     <div className="relative flex flex-1 flex-col space-y-4 p-4 sm:p-6">
-      {/* Top Row: Property Info + Progress Circle - Responsive Layout */}
+      {/* Desktop: 2-column layout (left: property+progress, right: members) */}
+      {/* Mobile: Stack vertically (property, progress, members) */}
       <div className="grid gap-4 lg:grid-cols-2">
-        {/* Property Info Card with Integrated Costs - Mobile Optimized */}
-        <Card className="overflow-hidden">
-          <div className="flex flex-col">
-            {/* Top: Property Image + Info */}
-            <div className="flex">
-              {/* Property Image - Mobile Responsive */}
-              <div className="relative h-20 w-24 shrink-0 bg-muted sm:h-24 sm:w-32">
-                <Image
-                  src={property.images?.[0] || "/placeholder-property.svg"}
-                  alt={property.address}
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 640px) 96px, 128px"
-                />
-              </div>
-
-              {/* Property Title Info */}
-              <div className="flex flex-1 flex-col justify-center p-3 sm:p-4">
-                <h1 className="flex items-center font-bold text-base sm:text-lg">
-                  <Calculator className="mr-2 h-4 w-4 text-primary" />
-                  {property.address}
-                </h1>
-                <p className="text-muted-foreground text-sm">
-                  {property.zipCode} {property.city}
-                </p>
-                <p className="mt-1 text-muted-foreground text-xs">
-                  Vraagprijs:{" "}
-                  <span className="font-semibold">{formatCurrency(Number(property.price))}</span>
-                </p>
-              </div>
-            </div>
-
-            {/* Bottom: Total Costs Section - Clickable */}
-            <div className="border-t bg-muted/30 px-3 py-3 sm:px-4 sm:py-4">
-              <button
-                type="button"
-                className="-m-2 w-full rounded-md p-2 text-left transition-colors hover:bg-muted/50"
-                onClick={() => setShowCostEdit(!showCostEdit)}
-                aria-label="Open cost editor"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold text-muted-foreground text-sm">Totale kosten</div>
-                    <div className="text-muted-foreground text-xs">
-                      Koopprijs + alle bijkosten • Tik om te bewerken
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-bold text-xl sm:text-2xl">
-                      {formatCurrency(
-                        Number(property.price) + 2500 + Number(property.price) * 0.02 + 750,
-                      )}
-                    </div>
-                  </div>
+        {/* Left Column: Property Info + Progress Circle (stacked on desktop, separate on mobile) */}
+        <div className="flex flex-col space-y-4">
+          {/* Property Info Card with Integrated Costs - Mobile Optimized */}
+          <Card className="overflow-hidden">
+            <div className="flex flex-col">
+              {/* Top: Property Image + Info */}
+              <div className="flex">
+                {/* Property Image - Mobile Responsive */}
+                <div className="relative h-20 w-24 shrink-0 bg-muted sm:h-24 sm:w-32">
+                  <Image
+                    src={property.images?.[0] || "/placeholder-property.svg"}
+                    alt={property.address}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 96px, 128px"
+                  />
                 </div>
-              </button>
-            </div>
-          </div>
-        </Card>
 
-        {/* Progress Circle Card */}
-        <Card>
-          <CardContent className="py-6">
-            {loading ? (
-              <div className="animate-pulse space-y-4">
-                <div className="mx-auto h-32 w-32 rounded-full bg-gray-200"></div>
-                <div className="mx-auto h-4 w-3/4 rounded bg-gray-200"></div>
+                {/* Property Title Info */}
+                <div className="flex flex-1 flex-col justify-center p-3 sm:p-4">
+                  <h1 className="flex items-center font-bold text-base sm:text-lg">
+                    <Calculator className="mr-2 h-4 w-4 text-primary" />
+                    {property.address}
+                  </h1>
+                  <p className="text-muted-foreground text-sm">
+                    {property.zipCode} {property.city}
+                  </p>
+                  <p className="mt-1 text-muted-foreground text-xs">
+                    Vraagprijs:{" "}
+                    <span className="font-semibold">{formatCurrency(Number(property.price))}</span>
+                  </p>
+                </div>
               </div>
-            ) : (
-              <PropertyGoalIndicator
-                percentage={totalPercentage}
-                allConfirmed={allConfirmed}
-                memberCount={sessionMembers.length}
-                size="md"
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Main Content - Cost Calculation Form */}
-      <CostCalculationForm
-        property={property}
-        group={group}
-        members={members}
-        currentUser={currentUser}
-        isSessionLocked={isSessionLocked}
-        sessionMembers={sessionMembers}
-        setSessionMembers={setSessionMembers}
-        yourPercentage={yourPercentage}
-        setYourPercentage={setYourPercentage}
-        yourStatus={yourStatus}
-        setYourStatus={setYourStatus}
-        loading={loading}
-        totalPercentage={totalPercentage}
-        allConfirmed={allConfirmed}
-        hideProgressCircle={true}
-        onlineMembers={onlineMembers}
-        isConnected={isConnected}
-        connectionQuality={connectionQuality}
-        emitPercentageUpdate={emitPercentageUpdate}
-        emitStatusChange={emitStatusChange}
-        getOnlineMemberCount={getOnlineMemberCount}
-      />
+              {/* Bottom: Total Costs Section - Clickable */}
+              <div className="border-t bg-muted/30 px-3 py-3 sm:px-4 sm:py-4">
+                <button
+                  type="button"
+                  className="-m-2 w-full rounded-md p-2 text-left transition-colors hover:bg-muted/50"
+                  onClick={() => setShowCostEdit(!showCostEdit)}
+                  aria-label="Open cost editor"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold text-muted-foreground text-sm">Totale kosten</div>
+                      <div className="text-muted-foreground text-xs">
+                        Koopprijs + alle bijkosten • Tik om te bewerken
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-bold text-xl sm:text-2xl">
+                        {formatCurrency(
+                          Number(property.price) + 2500 + Number(property.price) * 0.02 + 750,
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </Card>
+
+          {/* Progress Circle Card */}
+          <Card>
+            <CardContent className="py-6">
+              {loading ? (
+                <div className="animate-pulse space-y-4">
+                  <div className="mx-auto h-32 w-32 rounded-full bg-gray-200"></div>
+                  <div className="mx-auto h-4 w-3/4 rounded bg-gray-200"></div>
+                </div>
+              ) : (
+                <PropertyGoalIndicator
+                  percentage={totalPercentage}
+                  allConfirmed={allConfirmed}
+                  memberCount={sessionMembers.length}
+                  size="md"
+                />
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Column: Members (Cost Calculation Form) */}
+        <div className="lg:col-span-1">
+          <CostCalculationForm
+            property={property}
+            group={group}
+            members={members}
+            currentUser={currentUser}
+            isSessionLocked={isSessionLocked}
+            sessionMembers={sessionMembers}
+            setSessionMembers={setSessionMembers}
+            yourPercentage={yourPercentage}
+            setYourPercentage={setYourPercentage}
+            yourStatus={yourStatus}
+            setYourStatus={setYourStatus}
+            loading={loading}
+            totalPercentage={totalPercentage}
+            allConfirmed={allConfirmed}
+            hideProgressCircle={true}
+            onlineMembers={onlineMembers}
+            isConnected={isConnected}
+            connectionQuality={connectionQuality}
+            emitPercentageUpdate={emitPercentageUpdate}
+            emitStatusChange={emitStatusChange}
+            getOnlineMemberCount={getOnlineMemberCount}
+          />
+        </div>
+      </div>
 
       {/* Cost Edit Panel - Mobile Optimized Overlay */}
       <div
