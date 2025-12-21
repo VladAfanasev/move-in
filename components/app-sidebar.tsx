@@ -23,6 +23,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import { useProfile } from "@/hooks/use-profile"
 
@@ -52,6 +53,13 @@ const items = [
 export function AppSidebar() {
   const pathname = usePathname()
   const { user, getDisplayName, getInitials } = useProfile()
+  const { isMobile, setOpenMobile } = useSidebar()
+
+  const handleLinkClick = () => {
+    if (isMobile) {
+      setOpenMobile(false)
+    }
+  }
 
   const handleSignOut = async () => {
     try {
@@ -67,7 +75,7 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/dashboard">
+              <Link href="/dashboard" onClick={handleLinkClick}>
                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                   <Building2 className="size-4" />
                 </div>
@@ -90,7 +98,7 @@ export function AppSidebar() {
                 return (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive}>
-                      <Link href={item.url}>
+                      <Link href={item.url} onClick={handleLinkClick}>
                         <item.icon className="size-4" />
                         <span>{item.title}</span>
                       </Link>
@@ -140,7 +148,7 @@ export function AppSidebar() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard/profile">
+                  <Link href="/dashboard/profile" onClick={handleLinkClick}>
                     <User2 className="mr-2 h-4 w-4" />
                     Profile
                   </Link>
