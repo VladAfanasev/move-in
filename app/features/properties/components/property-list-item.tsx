@@ -61,9 +61,9 @@ export function PropertyListItem({ property }: PropertyListItemProps) {
   return (
     <Card className="overflow-hidden rounded-none border-none shadow-none">
       <CardContent className="p-0">
-        <div className="flex">
+        <div className="flex flex-col sm:flex-row">
           {/* Image */}
-          <div className="relative h-48 w-64 flex-shrink-0">
+          <div className="relative h-48 w-full flex-shrink-0 sm:w-64">
             <Image
               src={primaryImage}
               alt={property.address}
@@ -97,7 +97,7 @@ export function PropertyListItem({ property }: PropertyListItemProps) {
           </div>
 
           {/* Content */}
-          <div className="flex flex-1 flex-col justify-between px-4">
+          <div className="flex flex-1 flex-col justify-between p-4 sm:px-4">
             <div>
               {/* Header */}
               <div className="mb-2 flex flex-col items-start space-y-4">

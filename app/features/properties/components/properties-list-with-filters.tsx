@@ -1,5 +1,6 @@
 "use client"
 
+import { Filter } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { PropertiesHeader } from "@/app/features/properties/components/properties-header"
@@ -8,6 +9,8 @@ import {
   PropertyFilters,
   type PropertyFilters as PropertyFiltersType,
 } from "@/app/features/properties/components/property-filters"
+import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import type { Property } from "@/lib/types"
 
 interface PropertiesListWithFiltersProps {
@@ -27,6 +30,7 @@ export function PropertiesListWithFilters({ properties }: PropertiesListWithFilt
   })
   const [sortValue, setSortValue] = useState("newest")
   const [favorites, setFavorites] = useState<string[]>([])
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   // Filter properties based on current filters
   const filteredProperties = useMemo(() => {
@@ -104,14 +108,34 @@ export function PropertiesListWithFilters({ properties }: PropertiesListWithFilt
   }
 
   return (
-    <div className="flex gap-8">
-      {/* Left Sidebar - Filters */}
-      <div className="flex-shrink-0">
+    <div className="flex flex-col lg:flex-row lg:gap-8">
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden flex-shrink-0 lg:block">
         <PropertyFilters onFiltersChange={setFilters} />
       </div>
 
-      {/* Right Content - Properties List */}
-      <div className="flex-1">
+      {/* Main Content */}
+      <div className="flex-1 overflow-hidden">
+        {/* Mobile Filter Button */}
+        <div className="mb-4 flex items-center justify-between lg:hidden">
+          <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <SheetTrigger asChild>
+              <Button variant="outline" size="sm">
+                <Filter className="mr-2 h-4 w-4" />
+                Filters
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-80">
+              <SheetHeader>
+                <SheetTitle>Filters</SheetTitle>
+              </SheetHeader>
+              <div className="mt-4">
+                <PropertyFilters onFiltersChange={setFilters} />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+
         <PropertiesHeader totalCount={sortedProperties.length} onSortChange={setSortValue} />
         <PropertiesList
           properties={sortedProperties}

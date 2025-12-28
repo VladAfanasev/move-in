@@ -175,61 +175,56 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
         }
       />
 
-      <div className="@container/main flex flex-1 flex-col p-6">
+      <div className="@container/main flex flex-1 flex-col p-4 sm:p-6">
         <div className="mb-6">
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <EditableText
-                value={group.name}
-                onSave={updateGroupName}
-                placeholder="Groepsnaam"
-                className="font-bold text-2xl"
-                disabled={!canEdit}
-                maxLength={100}
-              />
-              {/* <div className="mt-2">
+          {/* Header with title, members and actions on same row */}
+          <div>
+            {/* Title and Members Row */}
+            <div className="flex items-start justify-between">
+              {/* Left: Title and basic info */}
+              <div className="flex-1 pr-4">
                 <EditableText
-                  value={group.description}
-                  onSave={updateGroupDescription}
-                  placeholder="Voeg een beschrijving toe..."
-                  className="text-muted-foreground"
+                  value={group.name}
+                  onSave={updateGroupName}
+                  placeholder="Groepsnaam"
+                  className="font-bold text-xl sm:text-2xl"
                   disabled={!canEdit}
-                  multiline
-                  maxLength={500}
+                  maxLength={100}
                 />
-              </div> */}
-              <div className="mt-4 flex flex-wrap gap-4 text-muted-foreground text-sm">
-                {group.targetBudget && (
-                  <span>Budget: €{Number(group.targetBudget).toLocaleString()}</span>
-                )}
-                {group.targetLocation && <span>Locatie: {group.targetLocation}</span>}
+                <div className="mt-3 flex flex-wrap gap-3 text-muted-foreground text-sm">
+                  {group.targetBudget && (
+                    <span>Budget: €{Number(group.targetBudget).toLocaleString()}</span>
+                  )}
+                  {group.targetLocation && <span>Locatie: {group.targetLocation}</span>}
+                </div>
               </div>
-            </div>
 
-            <div className="flex gap-2">
-              <MemberAvatarStack
-                members={members}
-                maxVisible={4}
-                size="sm"
-                currentUserRole={userMember.role}
-                groupId={group.id}
-                onMemberUpdate={handleMemberUpdate}
-              />
+              {/* Right: Member avatars and action buttons */}
+              <div className="flex items-start gap-2">
+                <MemberAvatarStack
+                  members={members}
+                  maxVisible={4}
+                  size="sm"
+                  currentUserRole={userMember.role}
+                  groupId={group.id}
+                  onMemberUpdate={handleMemberUpdate}
+                />
 
-              <InviteMemberPopover groupId={group.id} groupName={group.name}>
-                <Button variant="outline">
-                  <Users className="mr-2 h-4 w-4" />
-                  Lid uitnodigen
-                </Button>
-              </InviteMemberPopover>
+                <InviteMemberPopover groupId={group.id} groupName={group.name}>
+                  <Button variant="outline" size="sm">
+                    <Users className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Lid uitnodigen</span>
+                  </Button>
+                </InviteMemberPopover>
 
-              <GroupActionsMenu
-                groupId={group.id}
-                groupName={group.name}
-                userRole={userMember.role}
-                isLastMember={isLastMember}
-                totalMembers={totalActiveMembers}
-              />
+                <GroupActionsMenu
+                  groupId={group.id}
+                  groupName={group.name}
+                  userRole={userMember.role}
+                  isLastMember={isLastMember}
+                  totalMembers={totalActiveMembers}
+                />
+              </div>
             </div>
           </div>
         </div>
