@@ -1,6 +1,7 @@
 import { Building2, Euro, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { JoinGroupButton } from "@/app/features/groups/components/join-group-button"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/server"
@@ -98,18 +99,15 @@ export default async function JoinGroupPage({ params, searchParams }: JoinGroupP
           <div className="space-y-3">
             {user ? (
               // User is logged in but not a member
-              <form action={`/join/${groupId}/confirm`} method="post">
-                {redirect && <input type="hidden" name="redirect" value={redirect} />}
-                <Button type="submit" className="w-full">
-                  Lid worden van deze groep
-                </Button>
-              </form>
+              <JoinGroupButton groupId={groupId} redirectUrl={redirect || undefined}>
+                Lid worden van deze groep
+              </JoinGroupButton>
             ) : (
               // User not logged in
               <>
                 <Button asChild className="w-full">
                   <Link
-                    href={`/login?returnTo=/join/${groupId}${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+                    href={`/login?redirectTo=/join/${groupId}${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
                   >
                     Inloggen en lid worden
                   </Link>
@@ -117,7 +115,7 @@ export default async function JoinGroupPage({ params, searchParams }: JoinGroupP
 
                 <Button asChild variant="outline" className="w-full">
                   <Link
-                    href={`/register?returnTo=/join/${groupId}${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
+                    href={`/register?redirectTo=/join/${groupId}${redirect ? `?redirect=${encodeURIComponent(redirect)}` : ""}`}
                   >
                     Account aanmaken en lid worden
                   </Link>

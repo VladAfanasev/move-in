@@ -20,8 +20,14 @@ export function useRealtimeSession({
   const [isConnected, setIsConnected] = useState(false)
   const [onlineMembers, setOnlineMembers] = useState<string[]>([])
   const [connectionAttempts, setConnectionAttempts] = useState(0)
+  const [lastHeartbeat, setLastHeartbeat] = useState<number>(Date.now())
+  const [connectionQuality, setConnectionQuality] = useState<
+    "excellent" | "good" | "poor" | "disconnected"
+  >("disconnected")
   const eventSourceRef = useRef<EventSource | null>(null)
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const heartbeatTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const connectTimeRef = useRef<number>(0)
 
   // Store callbacks in refs to avoid dependency issues
   const callbacksRef = useRef({
@@ -59,6 +65,17 @@ export function useRealtimeSession({
         console.log("SSE connected successfully")
         setIsConnected(true)
         setConnectionAttempts(0)
+        setConnectionQuality("excellent")
+        connectTimeRef.current = Date.now()
+
+        // Start heartbeat monitoring
+        if (heartbeatTimeoutRef.current) {
+          clearTimeout(heartbeatTimeoutRef.current)
+        }
+        heartbeatTimeoutRef.current = setTimeout(() => {
+          console.log("No heartbeat received, connection may be stale")
+          setConnectionQuality("poor")
+        }, 45000) // 45 seconds timeout
       }
 
       eventSource.onmessage = event => {
@@ -66,16 +83,29 @@ export function useRealtimeSession({
           const data = JSON.parse(event.data)
           console.log("SSE message received:", data)
 
+          // Update heartbeat for connection health monitoring
+          setLastHeartbeat(Date.now())
+
           switch (data.type) {
             case "connected":
               console.log("SSE connection confirmed for user:", data.userId)
+              // Ensure current user is included in online members
+              if (data.userId === userId) {
+                setOnlineMembers(prev => [...new Set([...prev, userId])])
+              }
               break
 
-            case "online-users":
+            case "online-users": {
               console.log("Online users updated:", data.users)
-              setOnlineMembers(data.users || [])
-              callbacksRef.current.onOnlineMembersChange?.(data.users || [])
+              const onlineUsers = data.users || []
+              // Always include current user in online members
+              if (!onlineUsers.includes(userId)) {
+                onlineUsers.push(userId)
+              }
+              setOnlineMembers(onlineUsers)
+              callbacksRef.current.onOnlineMembersChange?.(onlineUsers)
               break
+            }
 
             case "user-joined":
               console.log("User joined session:", data.userId)
@@ -86,25 +116,47 @@ export function useRealtimeSession({
 
             case "user-left":
               console.log("User left session:", data.userId)
-              setOnlineMembers(prev => prev.filter(id => id !== data.userId))
+              if (data.userId !== userId) {
+                setOnlineMembers(prev => prev.filter(id => id !== data.userId))
+              }
               break
 
             case "percentage-update":
               console.log("Percentage update received:", data)
               if (data.userId !== userId) {
+                // Only process updates from other users
                 callbacksRef.current.onPercentageUpdate?.(data)
+              } else {
+                console.log("Ignoring own percentage update to avoid feedback loop")
               }
               break
 
             case "status-change":
               console.log("Status change received:", data)
               if (data.userId !== userId) {
+                // Only process status changes from other users
                 callbacksRef.current.onStatusChange?.(data)
+              } else {
+                console.log("Ignoring own status change to avoid feedback loop")
               }
               break
 
             case "session-locked":
               console.log("Session locked:", data)
+              break
+
+            case "heartbeat":
+              console.log("Heartbeat received")
+              setConnectionQuality("excellent")
+
+              // Reset heartbeat timeout
+              if (heartbeatTimeoutRef.current) {
+                clearTimeout(heartbeatTimeoutRef.current)
+              }
+              heartbeatTimeoutRef.current = setTimeout(() => {
+                console.log("No heartbeat received, connection may be stale")
+                setConnectionQuality("poor")
+              }, 45000) // 45 seconds timeout
               break
 
             default:
@@ -118,6 +170,13 @@ export function useRealtimeSession({
       eventSource.onerror = error => {
         console.error("SSE connection error:", error)
         setIsConnected(false)
+        setConnectionQuality("disconnected")
+
+        // Clear heartbeat monitoring
+        if (heartbeatTimeoutRef.current) {
+          clearTimeout(heartbeatTimeoutRef.current)
+          heartbeatTimeoutRef.current = null
+        }
 
         // Use current state for reconnection logic
         setConnectionAttempts(currentAttempts => {
@@ -127,6 +186,8 @@ export function useRealtimeSession({
               `Reconnecting in ${delay}ms (attempt ${currentAttempts + 1}/${maxReconnectAttempts})`,
             )
 
+            setConnectionQuality("poor")
+
             reconnectTimeoutRef.current = setTimeout(() => {
               connectToSSE()
             }, delay)
@@ -134,6 +195,7 @@ export function useRealtimeSession({
             return currentAttempts + 1
           } else {
             console.error("Max reconnection attempts reached")
+            setConnectionQuality("disconnected")
             return currentAttempts
           }
         })
@@ -145,9 +207,16 @@ export function useRealtimeSession({
   }, [sessionId, userId]) // Removed the callback dependencies that cause infinite loops
 
   const disconnect = useCallback(() => {
+    console.log("Disconnecting SSE connection")
+
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current)
       reconnectTimeoutRef.current = null
+    }
+
+    if (heartbeatTimeoutRef.current) {
+      clearTimeout(heartbeatTimeoutRef.current)
+      heartbeatTimeoutRef.current = null
     }
 
     if (eventSourceRef.current) {
@@ -157,16 +226,15 @@ export function useRealtimeSession({
 
     setIsConnected(false)
     setOnlineMembers([])
+    setConnectionAttempts(0)
   }, [])
 
-  // Initialize connection only once
+  // Initialize connection when component mounts or sessionId/userId changes
   useEffect(() => {
     connectToSSE()
 
-    return () => {
-      disconnect()
-    }
-  }, [sessionId, userId]) // Only reconnect if sessionId or userId changes
+    return disconnect
+  }, [connectToSSE, disconnect])
 
   // Update session status via API
   const updateSessionStatus = useCallback(
@@ -229,6 +297,7 @@ export function useRealtimeSession({
   return {
     isConnected,
     onlineMembers,
+    connectionQuality,
     emitPercentageUpdate,
     emitStatusChange,
     getOnlineMemberCount,

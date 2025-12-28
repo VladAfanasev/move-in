@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server"
 export async function signIn(formData: FormData) {
   const email = formData.get("email") as string
   const password = formData.get("password") as string
+  const redirectTo = formData.get("redirectTo") as string
 
   // Validate inputs
   if (!(email && password)) {
@@ -31,6 +32,11 @@ export async function signIn(formData: FormData) {
     console.log("User signed in successfully")
 
     revalidatePath("/", "layout")
+
+    if (redirectTo) {
+      redirect(redirectTo)
+    }
+
     return { success: true }
   } catch (error) {
     console.error("Unexpected error during signin:", error)
@@ -43,6 +49,7 @@ export async function signUp(formData: FormData) {
   const password = formData.get("password") as string
   const firstName = formData.get("firstName") as string
   const lastName = formData.get("lastName") as string
+  const redirectTo = formData.get("redirectTo") as string
 
   // Validate inputs
   if (!(email && password && firstName)) {
@@ -117,6 +124,11 @@ export async function signUp(formData: FormData) {
     }
 
     revalidatePath("/", "layout")
+
+    if (redirectTo) {
+      redirect(redirectTo)
+    }
+
     return { success: true }
   } catch (error) {
     console.error("Unexpected error during signup:", error)

@@ -29,7 +29,7 @@ export function getGoalProgressMessage(
       message: "Perfect! Wachten op bevestiging van iedereen...",
       urgency: "high",
       icon: "⏳",
-      actionHint: "Bevestig jouw aandeel als je dat nog niet hebt gedaan",
+      actionHint: "",
     }
   }
 

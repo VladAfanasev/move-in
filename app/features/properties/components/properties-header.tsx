@@ -15,13 +15,13 @@ interface PropertiesHeaderProps {
 
 export function PropertiesHeader({ totalCount, onSortChange }: PropertiesHeaderProps) {
   return (
-    <div className="mb-6 flex items-center justify-between">
+    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div className="text-muted-foreground text-sm">
         {totalCount} {totalCount === 1 ? "woning" : "woningen"} gevonden
       </div>
 
       <Select onValueChange={onSortChange} defaultValue="newest">
-        <SelectTrigger className="w-48">
+        <SelectTrigger className="w-full sm:w-48">
           <SelectValue placeholder="Sorteer op..." />
         </SelectTrigger>
         <SelectContent>

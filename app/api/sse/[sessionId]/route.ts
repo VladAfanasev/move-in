@@ -60,10 +60,30 @@ export async function GET(
         })
         controller.enqueue(`data: ${onlineData}\n\n`)
 
+        // Send periodic heartbeat to maintain connection health
+        const heartbeatInterval = setInterval(() => {
+          try {
+            const heartbeat = JSON.stringify({
+              type: "heartbeat",
+              timestamp: Date.now(),
+            })
+            controller.enqueue(`data: ${heartbeat}\n\n`)
+          } catch (error) {
+            console.error("Heartbeat error:", error)
+            clearInterval(heartbeatInterval)
+          }
+        }, 30000) // Every 30 seconds
+
         // Notify other users in the session that this user joined
         notifyUserJoined(sessionId, userId)
 
         console.log(`SSE connection established for user ${userId} in session ${sessionId}`)
+
+        // Store heartbeat interval for cleanup
+        const cleanup = () => {
+          clearInterval(heartbeatInterval)
+        }
+        return cleanup
       } catch (error) {
         console.error("Error in SSE start:", error)
         controller.error(error)
