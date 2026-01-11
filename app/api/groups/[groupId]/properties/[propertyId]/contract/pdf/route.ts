@@ -58,7 +58,25 @@ export async function POST(
     // Use participants from the session (already processed)
     const participants = session.participants
 
-    const formatCurrency = (amount: string) => {
+    // Calculate total costs correctly by summing all individual costs
+    const purchasePrice = Number(property.price)
+    const notaryFees = Number(calculation[0].notaryFees) || 2500
+    const transferTax = purchasePrice * 0.02 // 2% transfer tax in Netherlands
+    const renovationCosts = Number(calculation[0].renovationCosts) || 0
+    const brokerFees = Number(calculation[0].brokerFees) || 0
+    const inspectionCosts = Number(calculation[0].inspectionCosts) || 750
+    const otherCosts = Number(calculation[0].otherCosts) || 0
+
+    const totalCosts =
+      purchasePrice +
+      notaryFees +
+      transferTax +
+      renovationCosts +
+      brokerFees +
+      inspectionCosts +
+      otherCosts
+
+    const formatCurrency = (amount: string | number) => {
       const num = Number(amount)
       return new Intl.NumberFormat("nl-NL", {
         style: "currency",
@@ -131,8 +149,8 @@ export async function POST(
             <h3>1. EIGENDOM INFORMATIE</h3>
             <table>
               <tr><td><strong>Adres</strong></td><td>${property.address}, ${property.zipCode} ${property.city}</td></tr>
-              <tr><td><strong>Vraagprijs</strong></td><td>${formatCurrency(property.price)}</td></tr>
-              <tr><td><strong>Aankoopprijs</strong></td><td>${formatCurrency(calculation[0].totalCosts)}</td></tr>
+              <tr><td><strong>Vraagprijs</strong></td><td>${formatCurrency(purchasePrice)}</td></tr>
+              <tr><td><strong>Totale Investering</strong></td><td>${formatCurrency(totalCosts)}</td></tr>
               <tr><td><strong>Type</strong></td><td>${property.propertyType === "house" ? "Huis" : "Appartement"}</td></tr>
               <tr><td><strong>Kamers</strong></td><td>${property.bedrooms || "N/A"}</td></tr>
               <tr><td><strong>Oppervlakte</strong></td><td>${property.squareFeet || "N/A"} m²</td></tr>
@@ -142,14 +160,14 @@ export async function POST(
           <div class="section">
             <h3>2. KOSTEN OVERZICHT</h3>
             <table>
-              <tr><td><strong>Vraagprijs</strong></td><td>${formatCurrency(calculation[0].purchasePrice)}</td></tr>
-              <tr><td><strong>Notaris kosten</strong></td><td>${formatCurrency(calculation[0].notaryFees || "0")}</td></tr>
-              <tr><td><strong>Overdrachtsbelasting</strong></td><td>${formatCurrency(calculation[0].transferTax || "0")}</td></tr>
-              <tr><td><strong>Renovatie kosten</strong></td><td>${formatCurrency(calculation[0].renovationCosts || "0")}</td></tr>
-              <tr><td><strong>Makelaar kosten</strong></td><td>${formatCurrency(calculation[0].brokerFees || "0")}</td></tr>
-              <tr><td><strong>Inspectie kosten</strong></td><td>${formatCurrency(calculation[0].inspectionCosts || "0")}</td></tr>
-              <tr><td><strong>Overige kosten</strong></td><td>${formatCurrency(calculation[0].otherCosts || "0")}</td></tr>
-              <tr style="font-weight: bold; background-color: #f2f2f2;"><td><strong>TOTAAL</strong></td><td>${formatCurrency(calculation[0].totalCosts)}</td></tr>
+              <tr><td><strong>Koopprijs</strong></td><td>${formatCurrency(purchasePrice)}</td></tr>
+              <tr><td><strong>Notaris kosten</strong></td><td>${formatCurrency(notaryFees)}</td></tr>
+              <tr><td><strong>Overdrachtsbelasting (2%)</strong></td><td>${formatCurrency(transferTax)}</td></tr>
+              <tr><td><strong>Renovatie kosten</strong></td><td>${formatCurrency(renovationCosts)}</td></tr>
+              <tr><td><strong>Makelaar kosten</strong></td><td>${formatCurrency(brokerFees)}</td></tr>
+              <tr><td><strong>Inspectie kosten</strong></td><td>${formatCurrency(inspectionCosts)}</td></tr>
+              <tr><td><strong>Overige kosten</strong></td><td>${formatCurrency(otherCosts)}</td></tr>
+              <tr style="font-weight: bold; background-color: #f2f2f2;"><td><strong>TOTAAL</strong></td><td>${formatCurrency(totalCosts)}</td></tr>
             </table>
           </div>
 
@@ -167,14 +185,12 @@ export async function POST(
                 ${participants
                   .map(participant => {
                     const member = members.find(m => m.userId === participant.userId)
-                    const amount = Math.round(
-                      (Number(calculation[0].totalCosts) * participant.currentPercentage) / 100,
-                    )
+                    const amount = Math.round((totalCosts * participant.currentPercentage) / 100)
                     return `
                     <tr>
                       <td>${member?.fullName || member?.email?.split("@")[0] || "Onbekend"}</td>
                       <td>${participant.currentPercentage.toFixed(1)}%</td>
-                      <td class="amount">${formatCurrency(amount.toString())}</td>
+                      <td class="amount">${formatCurrency(amount)}</td>
                     </tr>
                   `
                   })
@@ -202,13 +218,11 @@ export async function POST(
               ${participants
                 .map(participant => {
                   const member = members.find(m => m.userId === participant.userId)
-                  const amount = Math.round(
-                    (Number(calculation[0].totalCosts) * participant.currentPercentage) / 100,
-                  )
+                  const amount = Math.round((totalCosts * participant.currentPercentage) / 100)
                   return `
                   <div class="participant">
                     <p><strong>Naam:</strong> ${member?.fullName || member?.email?.split("@")[0] || "Onbekend"}</p>
-                    <p><strong>Investering:</strong> ${formatCurrency(amount.toString())} (${participant.currentPercentage.toFixed(1)}%)</p>
+                    <p><strong>Investering:</strong> ${formatCurrency(amount)} (${participant.currentPercentage.toFixed(1)}%)</p>
                     <p><strong>Handtekening:</strong> <span class="signature-line"></span> <strong>Datum:</strong> <span class="signature-line"></span></p>
                   </div>
                 `

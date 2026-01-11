@@ -10,10 +10,15 @@ type MessageData = {
   timestamp?: number
   sessionId?: string
   lockedBy?: string
+  redirectUrl?: string
 }
 
 type Controller = ReadableStreamDefaultController<string>
-type ConnectionData = { controller: Controller; lastActivity: number }
+type ConnectionData = {
+  controller: Controller
+  lastActivity: number
+  cleanup?: () => void
+}
 type SessionConnections = Map<string, ConnectionData>
 type GlobalConnections = Map<string, SessionConnections>
 
@@ -28,7 +33,12 @@ const getConnections = (): GlobalConnections => {
   return global.__sse_connections
 }
 
-export function addConnection(sessionId: string, userId: string, controller: Controller) {
+export function addConnection(
+  sessionId: string,
+  userId: string,
+  controller: Controller,
+  cleanup?: () => void,
+) {
   const connections = getConnections()
 
   if (!connections.has(sessionId)) {
@@ -37,20 +47,23 @@ export function addConnection(sessionId: string, userId: string, controller: Con
 
   const sessionConnections = connections.get(sessionId)
   if (sessionConnections) {
-    // Check if user already has a connection - close the old one first
+    // Check if user already has a connection - clean up the old one first
     const existingConnection = sessionConnections.get(userId)
     if (existingConnection) {
       console.log(`🔄 Replacing existing connection for user ${userId} in session ${sessionId}`)
+      // Run cleanup (clears heartbeat interval)
+      existingConnection.cleanup?.()
       try {
         existingConnection.controller.close()
-      } catch (error) {
-        console.error("Error closing existing connection:", error)
+      } catch {
+        // Ignore - controller may already be closed
       }
     }
 
     sessionConnections.set(userId, {
       controller,
       lastActivity: Date.now(),
+      cleanup,
     })
     console.log(
       `✅ Added connection for user ${userId} in session ${sessionId} (${existingConnection ? "replaced" : "new"})`,
@@ -63,6 +76,9 @@ export function removeConnection(sessionId: string, userId: string) {
   const sessionConnections = connections.get(sessionId)
 
   if (sessionConnections) {
+    const connection = sessionConnections.get(userId)
+    // Run cleanup before removing
+    connection?.cleanup?.()
     sessionConnections.delete(userId)
     console.log(`Removed connection for user ${userId} in session ${sessionId}`)
 
@@ -81,40 +97,6 @@ export function getOnlineUsers(sessionId: string): string[] {
   if (!sessionConnections) return []
 
   return Array.from(sessionConnections.keys())
-}
-
-// Check if real-time connection should be established
-export async function shouldUseRealtimeConnection(
-  sessionId: string,
-  currentUserId: string,
-): Promise<boolean> {
-  try {
-    // Parse sessionId format: "groupId-propertyId" to validate format
-    const uuidRegex =
-      /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
-    const match = sessionId.match(uuidRegex)
-
-    if (!match) {
-      console.error("Invalid sessionId format (expected: uuid-uuid):", sessionId)
-      return false
-    }
-
-    // Get current online connections for this session
-    const onlineUsers = getOnlineUsers(sessionId)
-    const totalPotentialUsers = new Set([...onlineUsers, currentUserId]).size
-
-    // Only use real-time connections if there are or could be multiple users
-    // Single user sessions can use database mode for better performance
-    const shouldUseRealtime = totalPotentialUsers > 1
-
-    console.log(
-      `Session ${sessionId}: ${totalPotentialUsers} users potentially online, real-time: ${shouldUseRealtime}`,
-    )
-    return shouldUseRealtime
-  } catch (error) {
-    console.error("Error in shouldUseRealtimeConnection:", error)
-    return false
-  }
 }
 
 export function broadcastToSession(

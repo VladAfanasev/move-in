@@ -49,10 +49,13 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
   const { groupJoinRequests } = await import("@/db/schema")
   const { and, eq } = await import("drizzle-orm")
 
-  const [group, members, groupProperties] = await Promise.all([
+  const { getCompletedNegotiationsForGroup } = await import("@/lib/cost-calculations")
+
+  const [group, members, groupProperties, completedNegotiations] = await Promise.all([
     getGroupById(id),
     getGroupMembers(id),
     getGroupPropertiesWithDetails(id),
+    getCompletedNegotiationsForGroup(id),
   ])
 
   if (!group) {
@@ -234,6 +237,7 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
             groupProperties={groupProperties}
             members={members}
             groupId={group.id}
+            initialCompletedNegotiations={Array.from(completedNegotiations)}
           />
         </div>
       </div>

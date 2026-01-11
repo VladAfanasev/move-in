@@ -98,6 +98,7 @@ export default async function CostCalculationPage({
   // Only get/create calculations if user is an active member
   let calculation = null
   let completedSession = null
+  let activeSession = null
   let isSessionLocked = false
 
   if (isActiveMember) {
@@ -107,13 +108,22 @@ export default async function CostCalculationPage({
     // Check for completed session (for contract display)
     completedSession = await getCompletedNegotiationSession(calculation.id)
 
-    // Always get or create an active session (for cost calculation form)
-    // const sessionId = await getOrCreateNegotiationSession(calculation.id, user.id)
-    // const activeSession = await getNegotiationSession(sessionId)
-
-    // Use completed session data for contract if available, otherwise use active session
-    // const sessionForContract = completedSession || activeSession
-    isSessionLocked = !!completedSession
+    if (completedSession) {
+      isSessionLocked = true
+    } else {
+      // Get or create active session with all participants
+      const { getOrCreateSessionWithParticipants } = await import("@/lib/cost-calculations")
+      const activeMembers = members.filter(m => m.status === "active")
+      activeSession = await getOrCreateSessionWithParticipants(
+        calculation.id,
+        user.id,
+        activeMembers.map(m => ({
+          userId: m.userId,
+          fullName: m.fullName,
+          email: m.email,
+        })),
+      )
+    }
   }
 
   return (
@@ -137,6 +147,7 @@ export default async function CostCalculationPage({
           members={members}
           currentUser={user}
           isSessionLocked={isSessionLocked}
+          initialSession={activeSession}
         />
       ) : hasPendingRequest ? (
         <PendingGroupApproval

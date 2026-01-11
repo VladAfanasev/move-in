@@ -66,7 +66,6 @@ interface CostCalculationFormProps {
   isConnected?: boolean
   connectionQuality?: "excellent" | "good" | "poor" | "disconnected"
   emitPercentageUpdate?: (percentage: number, status: "adjusting" | "confirmed") => void
-  emitStatusChange?: (status: "adjusting" | "confirmed") => void
   getOnlineMemberCount?: () => number
 }
 
@@ -92,7 +91,6 @@ export function CostCalculationForm({
   isConnected: externalIsConnected,
   connectionQuality: externalConnectionQuality,
   emitPercentageUpdate: externalEmitPercentageUpdate,
-  emitStatusChange: externalEmitStatusChange,
   getOnlineMemberCount: externalGetOnlineMemberCount,
 }: CostCalculationFormProps) {
   // Session state for percentage negotiation (use external if available)
@@ -166,7 +164,6 @@ export function CostCalculationForm({
   const connectionQuality = externalConnectionQuality ?? internalRealtimeSession.connectionQuality
   const emitPercentageUpdate =
     externalEmitPercentageUpdate ?? internalRealtimeSession.emitPercentageUpdate
-  const emitStatusChange = externalEmitStatusChange ?? internalRealtimeSession.emitStatusChange
   const getOnlineMemberCount =
     externalGetOnlineMemberCount ?? internalRealtimeSession.getOnlineMemberCount
 
@@ -271,10 +268,18 @@ export function CostCalculationForm({
   // Handle confirm
   const handleConfirm = () => {
     if (Math.abs(totalPercentage - 100) >= 0.01) return
+
+    // Clear any pending debounced percentage updates to prevent race condition
+    // where an "adjusting" status could overwrite "confirmed" on other clients
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+      debounceTimeoutRef.current = null
+    }
+
     setYourStatus("confirmed")
 
-    // Emit real-time status change
-    emitStatusChange("confirmed")
+    // Emit real-time percentage update with confirmed status (includes percentage for database persistence)
+    emitPercentageUpdate(yourPercentage, "confirmed")
 
     setSessionMembers(prev =>
       prev.map(member =>
@@ -285,10 +290,16 @@ export function CostCalculationForm({
 
   // Handle change mind
   const handleChangeMind = () => {
+    // Clear any pending debounced updates
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+      debounceTimeoutRef.current = null
+    }
+
     setYourStatus("adjusting")
 
-    // Emit real-time status change
-    emitStatusChange("adjusting")
+    // Emit real-time status change with current percentage
+    emitPercentageUpdate(yourPercentage, "adjusting")
 
     setSessionMembers(prev =>
       prev.map(member =>

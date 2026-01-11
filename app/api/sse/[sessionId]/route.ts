@@ -4,7 +4,6 @@ import {
   notifyUserJoined,
   notifyUserLeft,
   removeConnection,
-  shouldUseRealtimeConnection,
 } from "@/lib/sse-connections"
 import { createClient } from "@/lib/supabase/server"
 
@@ -23,34 +22,32 @@ export async function GET(
     return new Response("Missing userId", { status: 400 })
   }
 
-  // Check if real-time connection is needed (2+ users)
-  const shouldConnect = await shouldUseRealtimeConnection(sessionId, userId)
-  console.log(`🤔 Should use realtime for session ${sessionId}:`, shouldConnect)
-
-  if (!shouldConnect) {
-    console.log(`📄 Returning single-user database mode for session ${sessionId}`)
-    return new Response(
-      JSON.stringify({
-        message: "Single user session - real-time disabled",
-        useDatabase: true,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      },
-    )
-  }
-
   // Verify user authentication (skip for test sessions)
   if (!sessionId.includes("test")) {
     try {
       const supabase = await createClient()
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser()
 
-      if (!user || user.id !== userId) {
-        return new Response("Unauthorized", { status: 401 })
+      console.log(
+        `🔐 SSE auth check - userId param: ${userId}, auth user: ${user?.id}, error: ${authError?.message}`,
+      )
+
+      if (authError) {
+        console.error("SSE auth error:", authError.message)
+        return new Response(`Auth error: ${authError.message}`, { status: 401 })
+      }
+
+      if (!user) {
+        console.error("SSE: No authenticated user found")
+        return new Response("Not authenticated", { status: 401 })
+      }
+
+      if (user.id !== userId) {
+        console.error(`SSE: User ID mismatch - param: ${userId}, auth: ${user.id}`)
+        return new Response("User ID mismatch", { status: 401 })
       }
     } catch (error) {
       console.error("SSE Authentication error:", error)
@@ -58,12 +55,23 @@ export async function GET(
     }
   }
 
+  // Track heartbeat interval for cleanup
+  let heartbeatInterval: NodeJS.Timeout | null = null
+
   // Create SSE stream
   const stream = new ReadableStream({
     start(controller) {
       try {
-        // Add this user's controller to the session
-        addConnection(sessionId, userId, controller)
+        // Create cleanup function for heartbeat
+        const cleanup = () => {
+          if (heartbeatInterval) {
+            clearInterval(heartbeatInterval)
+            heartbeatInterval = null
+          }
+        }
+
+        // Add this user's controller to the session with cleanup
+        addConnection(sessionId, userId, controller, cleanup)
 
         // Send initial connection message
         const data = JSON.stringify({
@@ -83,29 +91,23 @@ export async function GET(
         controller.enqueue(`data: ${onlineData}\n\n`)
 
         // Send periodic heartbeat to maintain connection health
-        const heartbeatInterval = setInterval(() => {
+        heartbeatInterval = setInterval(() => {
           try {
             const heartbeat = JSON.stringify({
               type: "heartbeat",
               timestamp: Date.now(),
             })
             controller.enqueue(`data: ${heartbeat}\n\n`)
-          } catch (error) {
-            console.error("Heartbeat error:", error)
-            clearInterval(heartbeatInterval)
+          } catch {
+            // Controller closed, clean up
+            cleanup()
           }
-        }, 120000) // Every 2 minutes (reduced from 30s)
+        }, 120000) // Every 2 minutes
 
         // Notify other users in the session that this user joined
         notifyUserJoined(sessionId, userId)
 
         console.log(`SSE connection established for user ${userId} in session ${sessionId}`)
-
-        // Store heartbeat interval for cleanup
-        const cleanup = () => {
-          clearInterval(heartbeatInterval)
-        }
-        return cleanup
       } catch (error) {
         console.error("Error in SSE start:", error)
         controller.error(error)
@@ -114,7 +116,7 @@ export async function GET(
 
     cancel() {
       try {
-        // Remove user from session when they disconnect
+        // Remove user from session when they disconnect (also calls cleanup)
         removeConnection(sessionId, userId)
 
         // Notify other users that this user left
