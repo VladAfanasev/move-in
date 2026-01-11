@@ -198,11 +198,7 @@ export function CostCalculationForm({
       // If using external state, don't manage loading internally
       setInternalLoading(false)
     }
-  }, [
-    _members,
-    currentUser.id,
-    externalSessionMembers,
-  ]) // Remove circular dependencies
+  }, [_members, currentUser.id, externalSessionMembers]) // Remove circular dependencies
 
   // Update online status when online members change (only when using internal state)
   useEffect(() => {

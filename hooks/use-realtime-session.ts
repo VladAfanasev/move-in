@@ -55,14 +55,14 @@ export function useRealtimeSession({
       const response = await fetch(
         `/api/realtime-sessions/${sessionId}/mode?userId=${encodeURIComponent(userId)}`,
       )
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`)
       }
-      
+
       const data = await response.json()
       console.log("📋 Session mode:", data)
-      
+
       if (data.useDatabase) {
         console.log("✅ Single user session detected, using database mode")
         setUseDatabase(true)
@@ -245,7 +245,7 @@ export function useRealtimeSession({
 
         // Check if we should fall back to database mode
         if (eventSource.readyState === EventSource.CLOSED) {
-          checkSessionMode().then((isDatabaseMode) => {
+          checkSessionMode().then(isDatabaseMode => {
             if (isDatabaseMode) {
               // Database mode activated, no need to reconnect
               return
@@ -313,7 +313,7 @@ export function useRealtimeSession({
   // Connection initialization effect - only run when sessionId or userId changes
   useEffect(() => {
     console.log(`Initializing connection for session ${sessionId}, user ${userId}`)
-    
+
     // Check session mode first before attempting SSE connection
     const initializeConnection = async () => {
       const isDatabaseMode = await checkSessionMode()
@@ -322,7 +322,7 @@ export function useRealtimeSession({
         connectToSSE()
       }
     }
-    
+
     initializeConnection()
 
     return () => {

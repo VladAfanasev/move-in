@@ -26,7 +26,7 @@ export async function GET(
   // Check if real-time connection is needed (2+ users)
   const shouldConnect = await shouldUseRealtimeConnection(sessionId, userId)
   console.log(`🤔 Should use realtime for session ${sessionId}:`, shouldConnect)
-  
+
   if (!shouldConnect) {
     console.log(`📄 Returning single-user database mode for session ${sessionId}`)
     return new Response(

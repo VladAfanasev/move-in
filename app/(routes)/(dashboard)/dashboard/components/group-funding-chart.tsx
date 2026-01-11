@@ -37,16 +37,14 @@ export function GroupFundingChart({ fundingProgress }: GroupFundingChartProps) {
         <CardDescription>Track your groups' funding goals</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {fundingProgress.slice(0, 4).map((group) => (
+        {fundingProgress.slice(0, 4).map(group => (
           <div key={group.name} className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span className="font-medium">{group.name}</span>
-              <span className="text-muted-foreground">
-                {group.percentage.toFixed(0)}%
-              </span>
+              <span className="text-muted-foreground">{group.percentage.toFixed(0)}%</span>
             </div>
             <Progress value={group.percentage} className="h-2" />
-            <div className="flex justify-between text-xs text-muted-foreground">
+            <div className="flex justify-between text-muted-foreground text-xs">
               <span>€{group.current.toLocaleString()}</span>
               <span>€{group.target.toLocaleString()}</span>
             </div>

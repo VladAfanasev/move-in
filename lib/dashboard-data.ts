@@ -57,39 +57,41 @@ export async function getDashboardStats(userId: string) {
 
     // Get recent activities (last 10)
     const recentActivities = await getRecentActivities(userId)
-    
+
     // Get action required items
     const actionItems = await getActionRequiredItems(userId)
 
     // Get saved properties count for user's groups
-    const savedPropertiesCount = userGroups.length > 0
-      ? await db
-          .select({ count: count() })
-          .from(groupProperties)
-          .where(
-            inArray(
-              groupProperties.groupId,
-              userGroups.map((g) => g.groupId),
-            ),
-          )
-      : [{ count: 0 }]
+    const savedPropertiesCount =
+      userGroups.length > 0
+        ? await db
+            .select({ count: count() })
+            .from(groupProperties)
+            .where(
+              inArray(
+                groupProperties.groupId,
+                userGroups.map(g => g.groupId),
+              ),
+            )
+        : [{ count: 0 }]
 
     // Get active negotiations count
-    const activeNegotiations = userGroups.length > 0
-      ? await db
-          .select({ count: count() })
-          .from(negotiationSessions)
-          .innerJoin(costCalculations, eq(negotiationSessions.calculationId, costCalculations.id))
-          .where(
-            and(
-              eq(negotiationSessions.status, "active"),
-              inArray(
-                costCalculations.groupId,
-                userGroups.map((g) => g.groupId),
+    const activeNegotiations =
+      userGroups.length > 0
+        ? await db
+            .select({ count: count() })
+            .from(negotiationSessions)
+            .innerJoin(costCalculations, eq(negotiationSessions.calculationId, costCalculations.id))
+            .where(
+              and(
+                eq(negotiationSessions.status, "active"),
+                inArray(
+                  costCalculations.groupId,
+                  userGroups.map(g => g.groupId),
+                ),
               ),
-            ),
-          )
-      : [{ count: 0 }]
+            )
+        : [{ count: 0 }]
 
     return {
       totalGroups: userGroups.length,
@@ -118,51 +120,55 @@ export async function getRecentActivities(userId: string, limit: number = 10) {
 
     if (userGroupIds.length === 0) return []
 
-    const groupIds = userGroupIds.map((g) => g.groupId)
+    const groupIds = userGroupIds.map(g => g.groupId)
 
     // Get recent comments from negotiations
-    const recentComments = groupIds.length > 0
-      ? await db
-          .select({
-            type: sql<string>`'comment'`,
-            title: sql<string>`'Nieuwe reactie in onderhandeling'`,
-            description: calculationComments.content,
-            createdAt: calculationComments.createdAt,
-            groupId: costCalculations.groupId,
-            groupName: buyingGroups.name,
-          })
-          .from(calculationComments)
-          .innerJoin(costCalculations, eq(calculationComments.calculationId, costCalculations.id))
-          .innerJoin(buyingGroups, eq(costCalculations.groupId, buyingGroups.id))
-          .where(inArray(costCalculations.groupId, groupIds))
-          .orderBy(desc(calculationComments.createdAt))
-          .limit(limit)
-      : []
+    const recentComments =
+      groupIds.length > 0
+        ? await db
+            .select({
+              type: sql<string>`'comment'`,
+              title: sql<string>`'Nieuwe reactie in onderhandeling'`,
+              description: calculationComments.content,
+              createdAt: calculationComments.createdAt,
+              groupId: costCalculations.groupId,
+              groupName: buyingGroups.name,
+            })
+            .from(calculationComments)
+            .innerJoin(costCalculations, eq(calculationComments.calculationId, costCalculations.id))
+            .innerJoin(buyingGroups, eq(costCalculations.groupId, buyingGroups.id))
+            .where(inArray(costCalculations.groupId, groupIds))
+            .orderBy(desc(calculationComments.createdAt))
+            .limit(limit)
+        : []
 
     // Get recent property additions
-    const recentProperties = groupIds.length > 0
-      ? await db
-          .select({
-            type: sql<string>`'property'`,
-            title: sql<string>`'Woning toegevoegd aan groep'`,
-            description: properties.address,
-            createdAt: groupProperties.addedAt,
-            groupId: groupProperties.groupId,
-            groupName: buyingGroups.name,
-          })
-          .from(groupProperties)
-          .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
-          .innerJoin(buyingGroups, eq(groupProperties.groupId, buyingGroups.id))
-          .where(inArray(groupProperties.groupId, groupIds))
-          .orderBy(desc(groupProperties.addedAt))
-          .limit(limit)
-      : []
+    const recentProperties =
+      groupIds.length > 0
+        ? await db
+            .select({
+              type: sql<string>`'property'`,
+              title: sql<string>`'Woning toegevoegd aan groep'`,
+              description: properties.address,
+              createdAt: groupProperties.addedAt,
+              groupId: groupProperties.groupId,
+              groupName: buyingGroups.name,
+            })
+            .from(groupProperties)
+            .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
+            .innerJoin(buyingGroups, eq(groupProperties.groupId, buyingGroups.id))
+            .where(inArray(groupProperties.groupId, groupIds))
+            .orderBy(desc(groupProperties.addedAt))
+            .limit(limit)
+        : []
 
     // Combine and sort all activities
     const allActivities = [...recentComments, ...recentProperties]
       .sort((a, b) => {
-        const dateA = a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime()
-        const dateB = b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime()
+        const dateA =
+          a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime()
+        const dateB =
+          b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime()
         return dateB - dateA
       })
       .slice(0, limit)
@@ -184,20 +190,21 @@ export async function getPropertyPriceDistribution(userId: string) {
 
     if (userGroupIds.length === 0) return []
 
-    const groupIds = userGroupIds.map((g) => g.groupId)
+    const groupIds = userGroupIds.map(g => g.groupId)
 
     // Get properties saved by user's groups
-    const groupPropertiesData = groupIds.length > 0
-      ? await db
-          .select({
-            price: properties.price,
-            address: properties.address,
-            city: properties.city,
-          })
-          .from(groupProperties)
-          .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
-          .where(inArray(groupProperties.groupId, groupIds))
-      : []
+    const groupPropertiesData =
+      groupIds.length > 0
+        ? await db
+            .select({
+              price: properties.price,
+              address: properties.address,
+              city: properties.city,
+            })
+            .from(groupProperties)
+            .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
+            .where(inArray(groupProperties.groupId, groupIds))
+        : []
 
     // Create price distribution buckets
     const priceRanges = [
@@ -208,13 +215,13 @@ export async function getPropertyPriceDistribution(userId: string) {
       { range: "800k+", min: 800000, max: Infinity, count: 0 },
     ]
 
-    groupPropertiesData.forEach((property) => {
+    groupPropertiesData.forEach(property => {
       const price = Number(property.price)
-      const range = priceRanges.find((r) => price >= r.min && price < r.max)
+      const range = priceRanges.find(r => price >= r.min && price < r.max)
       if (range) range.count++
     })
 
-    return priceRanges.filter((r) => r.count > 0)
+    return priceRanges.filter(r => r.count > 0)
   } catch (error) {
     console.error("Error fetching property price distribution:", error)
     return []
@@ -224,7 +231,7 @@ export async function getPropertyPriceDistribution(userId: string) {
 export async function getActionRequiredItems(userId: string) {
   try {
     const now = new Date()
-    
+
     // Get pending invitations sent to user's email
     const pendingInvitations = await db
       .select({
@@ -244,7 +251,7 @@ export async function getActionRequiredItems(userId: string) {
           gt(groupInvitations.expiresAt, now),
         ),
       )
-    
+
     // Get pending join requests for groups where user is admin/owner
     const adminGroups = await db
       .select({ groupId: groupMembers.groupId })
@@ -256,100 +263,112 @@ export async function getActionRequiredItems(userId: string) {
           inArray(groupMembers.role, ["owner", "admin"]),
         ),
       )
-    
-    const pendingRequests = adminGroups.length > 0
-      ? await db
-          .select({
-            type: sql<string>`'join_request'`,
-            groupId: groupJoinRequests.groupId,
-            groupName: buyingGroups.name,
-            userId: groupJoinRequests.userId,
-            userName: profiles.fullName,
-            message: groupJoinRequests.message,
-            id: groupJoinRequests.id,
-            requestedAt: groupJoinRequests.requestedAt,
-          })
-          .from(groupJoinRequests)
-          .innerJoin(buyingGroups, eq(groupJoinRequests.groupId, buyingGroups.id))
-          .innerJoin(profiles, eq(groupJoinRequests.userId, profiles.id))
-          .where(
-            and(
-              inArray(groupJoinRequests.groupId, adminGroups.map((g) => g.groupId)),
-              eq(groupJoinRequests.status, "pending"),
-              gt(groupJoinRequests.expiresAt, now),
-            ),
-          )
-      : []
-    
+
+    const pendingRequests =
+      adminGroups.length > 0
+        ? await db
+            .select({
+              type: sql<string>`'join_request'`,
+              groupId: groupJoinRequests.groupId,
+              groupName: buyingGroups.name,
+              userId: groupJoinRequests.userId,
+              userName: profiles.fullName,
+              message: groupJoinRequests.message,
+              id: groupJoinRequests.id,
+              requestedAt: groupJoinRequests.requestedAt,
+            })
+            .from(groupJoinRequests)
+            .innerJoin(buyingGroups, eq(groupJoinRequests.groupId, buyingGroups.id))
+            .innerJoin(profiles, eq(groupJoinRequests.userId, profiles.id))
+            .where(
+              and(
+                inArray(
+                  groupJoinRequests.groupId,
+                  adminGroups.map(g => g.groupId),
+                ),
+                eq(groupJoinRequests.status, "pending"),
+                gt(groupJoinRequests.expiresAt, now),
+              ),
+            )
+        : []
+
     // Get active negotiation sessions where user hasn't confirmed
     const userGroupIds = await db
       .select({ groupId: groupMembers.groupId })
       .from(groupMembers)
       .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "active")))
 
-    const activeNegotiationSessions = userGroupIds.length > 0
-      ? await db
-          .select({
-            type: sql<string>`'negotiation'`,
-            sessionId: negotiationSessions.id,
-            propertyId: costCalculations.propertyId,
-            groupId: costCalculations.groupId,
-            groupName: buyingGroups.name,
-            propertyAddress: properties.address,
-            status: negotiationSessions.status,
-          })
-          .from(negotiationSessions)
-          .innerJoin(costCalculations, eq(negotiationSessions.calculationId, costCalculations.id))
-          .innerJoin(buyingGroups, eq(costCalculations.groupId, buyingGroups.id))
-          .innerJoin(properties, eq(costCalculations.propertyId, properties.id))
-          .leftJoin(
-            memberSessionParticipation,
-            and(
-              eq(memberSessionParticipation.sessionId, negotiationSessions.id),
-              eq(memberSessionParticipation.userId, userId),
-            ),
-          )
-          .where(
-            and(
-              inArray(costCalculations.groupId, userGroupIds.map((g) => g.groupId)),
-              eq(negotiationSessions.status, "active"),
-              eq(memberSessionParticipation.status, "adjusting"), // User hasn't confirmed yet
-            ),
-          )
-      : []
-      
+    const activeNegotiationSessions =
+      userGroupIds.length > 0
+        ? await db
+            .select({
+              type: sql<string>`'negotiation'`,
+              sessionId: negotiationSessions.id,
+              propertyId: costCalculations.propertyId,
+              groupId: costCalculations.groupId,
+              groupName: buyingGroups.name,
+              propertyAddress: properties.address,
+              status: negotiationSessions.status,
+            })
+            .from(negotiationSessions)
+            .innerJoin(costCalculations, eq(negotiationSessions.calculationId, costCalculations.id))
+            .innerJoin(buyingGroups, eq(costCalculations.groupId, buyingGroups.id))
+            .innerJoin(properties, eq(costCalculations.propertyId, properties.id))
+            .leftJoin(
+              memberSessionParticipation,
+              and(
+                eq(memberSessionParticipation.sessionId, negotiationSessions.id),
+                eq(memberSessionParticipation.userId, userId),
+              ),
+            )
+            .where(
+              and(
+                inArray(
+                  costCalculations.groupId,
+                  userGroupIds.map(g => g.groupId),
+                ),
+                eq(negotiationSessions.status, "active"),
+                eq(memberSessionParticipation.status, "adjusting"), // User hasn't confirmed yet
+              ),
+            )
+        : []
+
     // Get properties with scheduled viewings
-    const scheduledViewings = userGroupIds.length > 0
-      ? await db
-          .select({
-            type: sql<string>`'viewing'`,
-            propertyId: groupProperties.propertyId,
-            groupId: groupProperties.groupId,
-            groupName: buyingGroups.name,
-            propertyAddress: properties.address,
-            notes: groupProperties.notes,
-          })
-          .from(groupProperties)
-          .innerJoin(buyingGroups, eq(groupProperties.groupId, buyingGroups.id))
-          .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
-          .where(
-            and(
-              inArray(groupProperties.groupId, userGroupIds.map((g) => g.groupId)),
-              eq(groupProperties.status, "viewing_scheduled"),
-            ),
-          )
-      : []
-    
+    const scheduledViewings =
+      userGroupIds.length > 0
+        ? await db
+            .select({
+              type: sql<string>`'viewing'`,
+              propertyId: groupProperties.propertyId,
+              groupId: groupProperties.groupId,
+              groupName: buyingGroups.name,
+              propertyAddress: properties.address,
+              notes: groupProperties.notes,
+            })
+            .from(groupProperties)
+            .innerJoin(buyingGroups, eq(groupProperties.groupId, buyingGroups.id))
+            .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
+            .where(
+              and(
+                inArray(
+                  groupProperties.groupId,
+                  userGroupIds.map(g => g.groupId),
+                ),
+                eq(groupProperties.status, "viewing_scheduled"),
+              ),
+            )
+        : []
+
     return {
       pendingInvitations: pendingInvitations.length,
       pendingJoinRequests: pendingRequests.length,
       activeNegotiations: activeNegotiationSessions.length,
       scheduledViewings: scheduledViewings.length,
       items: [
-        ...pendingInvitations.map((i) => ({ ...i, priority: 1 })),
-        ...pendingRequests.map((r) => ({ ...r, priority: 2 })),
-        ...activeNegotiationSessions.map((n) => ({ ...n, priority: 3 })),
-        ...scheduledViewings.map((v) => ({ ...v, priority: 4 })),
+        ...pendingInvitations.map(i => ({ ...i, priority: 1 })),
+        ...pendingRequests.map(r => ({ ...r, priority: 2 })),
+        ...activeNegotiationSessions.map(n => ({ ...n, priority: 3 })),
+        ...scheduledViewings.map(v => ({ ...v, priority: 4 })),
       ].sort((a, b) => a.priority - b.priority),
     }
   } catch (error) {
@@ -377,7 +396,7 @@ export async function getGroupFundingProgress(userId: string) {
       .innerJoin(buyingGroups, eq(groupMembers.groupId, buyingGroups.id))
       .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "active")))
 
-    return userGroups.map((group) => ({
+    return userGroups.map(group => ({
       name: group.name,
       target: Number(group.targetBudget || 0),
       current: Number(group.currentFunds || 0),

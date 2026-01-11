@@ -61,10 +61,15 @@ export function CostCalculationPageClient({
   const [showCostEdit, setShowCostEdit] = useState(false)
   const [yourPercentage, setYourPercentage] = useState(25)
   const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
-  const [remoteMemberData, setRemoteMemberData] = useState<Record<string, {
-    percentage: number
-    status: "adjusting" | "confirmed"
-  }>>({})
+  const [remoteMemberData, setRemoteMemberData] = useState<
+    Record<
+      string,
+      {
+        percentage: number
+        status: "adjusting" | "confirmed"
+      }
+    >
+  >({})
 
   // Real-time session management
   const {
@@ -83,7 +88,7 @@ export function CostCalculationPageClient({
         [data.userId]: {
           percentage: data.percentage,
           status: data.status as "adjusting" | "confirmed",
-        }
+        },
       }))
     },
     onStatusChange: data => {
@@ -92,7 +97,7 @@ export function CostCalculationPageClient({
         [data.userId]: {
           ...prev[data.userId],
           status: data.status as "adjusting" | "confirmed",
-        }
+        },
       }))
     },
   })
@@ -100,7 +105,7 @@ export function CostCalculationPageClient({
   // Derive session members from actual members and real-time data
   const sessionMembers = useMemo<SessionMember[]>(() => {
     const activeMembers = members.filter(member => member.status === "active")
-    
+
     return activeMembers
       .sort((a, b) => {
         // Current user always comes first

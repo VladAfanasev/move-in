@@ -14,7 +14,7 @@ export async function GET(
 
   try {
     const shouldConnect = await shouldUseRealtimeConnection(sessionId, userId)
-    
+
     return Response.json({
       sessionId,
       useRealtime: shouldConnect,

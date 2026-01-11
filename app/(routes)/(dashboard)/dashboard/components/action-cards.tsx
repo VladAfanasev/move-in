@@ -58,8 +58,8 @@ export function ActionCards({ actionItems }: ActionCardsProps) {
   ]
 
   // Filter to show only cards with items
-  const activeCards = cards.filter((card) => card.count > 0)
-  
+  const activeCards = cards.filter(card => card.count > 0)
+
   // If no action items, show a single card with a message
   if (activeCards.length === 0) {
     return (
@@ -87,8 +87,8 @@ export function ActionCards({ actionItems }: ActionCardsProps) {
   }
 
   return (
-    <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-      {activeCards.map((card) => (
+    <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {activeCards.map(card => (
         <Card key={card.title} className="relative overflow-hidden">
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between">

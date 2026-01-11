@@ -1,11 +1,11 @@
 import { redirect } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
+import { getDashboardStats } from "@/lib/dashboard-data"
 import { createClient } from "@/lib/supabase/server"
 import { ActionCards } from "./components/action-cards"
 import { DashboardStats } from "./components/dashboard-stats"
 import { QuickActions } from "./components/quick-actions"
 import { RecentActivity } from "./components/recent-activity"
-import { getDashboardStats } from "@/lib/dashboard-data"
 
 // Force dynamic rendering to prevent build-time prerendering
 export const dynamic = "force-dynamic"
