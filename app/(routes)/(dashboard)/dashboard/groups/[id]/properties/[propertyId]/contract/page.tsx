@@ -68,7 +68,23 @@ export default async function ContractPage({ params }: ContractPageProps) {
     redirect(`/dashboard/groups/${groupId}/calculate/${propertyId}`)
   }
 
-  const totalCosts = Number(calculation.totalCosts)
+  // Calculate total costs correctly by summing all individual costs
+  const purchasePrice = Number(property.price)
+  const notaryFees = Number(calculation.notaryFees) || 2500
+  const transferTax = purchasePrice * 0.02 // 2% transfer tax in Netherlands
+  const renovationCosts = Number(calculation.renovationCosts) || 0
+  const brokerFees = Number(calculation.brokerFees) || 0
+  const inspectionCosts = Number(calculation.inspectionCosts) || 750
+  const otherCosts = Number(calculation.otherCosts) || 0
+
+  const totalCosts =
+    purchasePrice +
+    notaryFees +
+    transferTax +
+    renovationCosts +
+    brokerFees +
+    inspectionCosts +
+    otherCosts
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("nl-NL", {
@@ -173,41 +189,31 @@ export default async function ContractPage({ params }: ContractPageProps) {
                   <div className="space-y-3">
                     <div className="flex justify-between">
                       <span>Koopprijs</span>
-                      <span className="font-medium">{formatCurrency(Number(property.price))}</span>
+                      <span className="font-medium">{formatCurrency(purchasePrice)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Notariskosten</span>
-                      <span className="font-medium">{formatCurrency(2500)}</span>
+                      <span className="font-medium">{formatCurrency(notaryFees)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Overdrachtsbelasting (2%)</span>
-                      <span className="font-medium">
-                        {formatCurrency(Number(property.price) * 0.02)}
-                      </span>
+                      <span className="font-medium">{formatCurrency(transferTax)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Renovatiekosten</span>
-                      <span className="font-medium">
-                        {formatCurrency(Number(calculation.renovationCosts) || 0)}
-                      </span>
+                      <span className="font-medium">{formatCurrency(renovationCosts)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Makelaarkosten</span>
-                      <span className="font-medium">
-                        {formatCurrency(Number(calculation.brokerFees) || 0)}
-                      </span>
+                      <span className="font-medium">{formatCurrency(brokerFees)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Inspecties</span>
-                      <span className="font-medium">
-                        {formatCurrency(Number(calculation.inspectionCosts) || 750)}
-                      </span>
+                      <span className="font-medium">{formatCurrency(inspectionCosts)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Overige kosten</span>
-                      <span className="font-medium">
-                        {formatCurrency(Number(calculation.otherCosts) || 0)}
-                      </span>
+                      <span className="font-medium">{formatCurrency(otherCosts)}</span>
                     </div>
                     <div className="border-t pt-3">
                       <div className="flex justify-between font-semibold text-lg">

@@ -10,6 +10,7 @@ type MessageData = {
   timestamp?: number
   sessionId?: string
   lockedBy?: string
+  redirectUrl?: string
 }
 
 type Controller = ReadableStreamDefaultController<string>

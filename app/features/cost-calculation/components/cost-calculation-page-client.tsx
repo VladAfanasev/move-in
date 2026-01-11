@@ -3,6 +3,7 @@
 import type { User } from "@supabase/supabase-js"
 import { Calculator } from "lucide-react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { CostCalculationForm } from "@/app/features/cost-calculation/components/cost-calculation-form"
 import { CostEditPanel } from "@/app/features/cost-calculation/components/cost-edit-panel"
@@ -43,12 +44,22 @@ interface SessionMember {
   isOnline?: boolean
 }
 
+interface InitialSession {
+  id: string
+  participants: Array<{
+    userId: string
+    currentPercentage: number
+    status: "adjusting" | "confirmed" | "locked"
+  }>
+}
+
 interface CostCalculationPageClientProps {
   property: Property
   group: Group
   members: Member[]
   currentUser: User
   isSessionLocked?: boolean
+  initialSession?: InitialSession | null
 }
 
 export function CostCalculationPageClient({
@@ -57,10 +68,47 @@ export function CostCalculationPageClient({
   members,
   currentUser,
   isSessionLocked = false,
+  initialSession,
 }: CostCalculationPageClientProps) {
+  const router = useRouter()
   const [showCostEdit, setShowCostEdit] = useState(false)
-  const [yourPercentage, setYourPercentage] = useState(25)
-  const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
+
+  // Initialize state from database session data
+  const getInitialPercentage = () => {
+    if (initialSession) {
+      const participant = initialSession.participants.find(p => p.userId === currentUser.id)
+      return participant?.currentPercentage ?? 25
+    }
+    return 25
+  }
+
+  const getInitialStatus = (): "adjusting" | "confirmed" => {
+    if (initialSession) {
+      const participant = initialSession.participants.find(p => p.userId === currentUser.id)
+      const status = participant?.status
+      if (status === "locked" || status === "confirmed") return "confirmed"
+    }
+    return "adjusting"
+  }
+
+  const getInitialRemoteMemberData = () => {
+    if (initialSession) {
+      const data: Record<string, { percentage: number; status: "adjusting" | "confirmed" }> = {}
+      for (const participant of initialSession.participants) {
+        if (participant.userId !== currentUser.id) {
+          data[participant.userId] = {
+            percentage: participant.currentPercentage,
+            status: participant.status === "locked" ? "confirmed" : participant.status,
+          }
+        }
+      }
+      return data
+    }
+    return {}
+  }
+
+  const [yourPercentage, setYourPercentage] = useState(getInitialPercentage)
+  const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">(getInitialStatus)
   const [remoteMemberData, setRemoteMemberData] = useState<
     Record<
       string,
@@ -69,7 +117,7 @@ export function CostCalculationPageClient({
         status: "adjusting" | "confirmed"
       }
     >
-  >({})
+  >(getInitialRemoteMemberData)
 
   // Real-time session management
   const {
@@ -77,7 +125,6 @@ export function CostCalculationPageClient({
     isConnected,
     connectionQuality,
     emitPercentageUpdate,
-    emitStatusChange,
     getOnlineMemberCount,
   } = useRealtimeSession({
     sessionId: `${group.id}-${property.id}`,
@@ -99,6 +146,10 @@ export function CostCalculationPageClient({
           status: data.status as "adjusting" | "confirmed",
         },
       }))
+    },
+    onSessionCompleted: data => {
+      console.log("Session completed! Redirecting to contract page:", data.redirectUrl)
+      router.push(data.redirectUrl)
     },
   })
 
@@ -253,7 +304,6 @@ export function CostCalculationPageClient({
             isConnected={isConnected}
             connectionQuality={connectionQuality}
             emitPercentageUpdate={emitPercentageUpdate}
-            emitStatusChange={emitStatusChange}
             getOnlineMemberCount={getOnlineMemberCount}
           />
         </div>
