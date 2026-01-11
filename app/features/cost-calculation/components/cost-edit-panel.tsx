@@ -122,7 +122,9 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
               type="number"
               value={costs.otherCosts || ""}
               placeholder="0"
-              onChange={e => setCosts(prev => ({ ...prev, otherCosts: Number(e.target.value) || 0 }))}
+              onChange={e =>
+                setCosts(prev => ({ ...prev, otherCosts: Number(e.target.value) || 0 }))
+              }
               className="mt-1"
             />
           </div>
@@ -134,7 +136,9 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
               type="number"
               value={costs.brokerFees || ""}
               placeholder="0"
-              onChange={e => setCosts(prev => ({ ...prev, brokerFees: Number(e.target.value) || 0 }))}
+              onChange={e =>
+                setCosts(prev => ({ ...prev, brokerFees: Number(e.target.value) || 0 }))
+              }
               className="mt-1"
             />
           </div>
