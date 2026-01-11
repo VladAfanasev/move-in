@@ -13,7 +13,8 @@ type MessageData = {
 }
 
 type Controller = ReadableStreamDefaultController<string>
-type SessionConnections = Map<string, Controller>
+type ConnectionData = { controller: Controller; lastActivity: number }
+type SessionConnections = Map<string, ConnectionData>
 type GlobalConnections = Map<string, SessionConnections>
 
 // Use a global variable to persist connections across requests
@@ -36,9 +37,25 @@ export function addConnection(sessionId: string, userId: string, controller: Con
 
   const sessionConnections = connections.get(sessionId)
   if (sessionConnections) {
-    sessionConnections.set(userId, controller)
+    // Check if user already has a connection - close the old one first
+    const existingConnection = sessionConnections.get(userId)
+    if (existingConnection) {
+      console.log(`🔄 Replacing existing connection for user ${userId} in session ${sessionId}`)
+      try {
+        existingConnection.controller.close()
+      } catch (error) {
+        console.error("Error closing existing connection:", error)
+      }
+    }
+
+    sessionConnections.set(userId, {
+      controller,
+      lastActivity: Date.now(),
+    })
+    console.log(
+      `✅ Added connection for user ${userId} in session ${sessionId} (${existingConnection ? "replaced" : "new"})`,
+    )
   }
-  console.log(`Added connection for user ${userId} in session ${sessionId}`)
 }
 
 export function removeConnection(sessionId: string, userId: string) {
@@ -66,6 +83,40 @@ export function getOnlineUsers(sessionId: string): string[] {
   return Array.from(sessionConnections.keys())
 }
 
+// Check if real-time connection should be established
+export async function shouldUseRealtimeConnection(
+  sessionId: string,
+  currentUserId: string,
+): Promise<boolean> {
+  try {
+    // Parse sessionId format: "groupId-propertyId" to validate format
+    const uuidRegex =
+      /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i
+    const match = sessionId.match(uuidRegex)
+
+    if (!match) {
+      console.error("Invalid sessionId format (expected: uuid-uuid):", sessionId)
+      return false
+    }
+
+    // Get current online connections for this session
+    const onlineUsers = getOnlineUsers(sessionId)
+    const totalPotentialUsers = new Set([...onlineUsers, currentUserId]).size
+
+    // Only use real-time connections if there are or could be multiple users
+    // Single user sessions can use database mode for better performance
+    const shouldUseRealtime = totalPotentialUsers > 1
+
+    console.log(
+      `Session ${sessionId}: ${totalPotentialUsers} users potentially online, real-time: ${shouldUseRealtime}`,
+    )
+    return shouldUseRealtime
+  } catch (error) {
+    console.error("Error in shouldUseRealtimeConnection:", error)
+    return false
+  }
+}
+
 export function broadcastToSession(
   sessionId: string,
   message: MessageData,
@@ -88,8 +139,10 @@ export function broadcastToSession(
   const failedUsers: string[] = []
   let sentCount = 0
 
-  for (const [userId, controller] of sessionConnections) {
+  for (const [userId, connectionData] of sessionConnections) {
     if (excludeUserId && userId === excludeUserId) continue
+
+    const { controller } = connectionData
 
     try {
       // Check if controller is still valid
@@ -100,6 +153,10 @@ export function broadcastToSession(
       }
 
       controller.enqueue(`data: ${data}\n\n`)
+
+      // Update last activity
+      connectionData.lastActivity = Date.now()
+
       sentCount++
     } catch (error) {
       console.log(`Failed to send to user ${userId}, marking for removal:`, error)
@@ -142,6 +199,14 @@ export function notifyUserJoined(sessionId: string, userId: string) {
     },
     userId,
   ) // Exclude the user who just joined
+
+  // Update last activity for the user who joined
+  const connections = getConnections()
+  const sessionConnections = connections.get(sessionId)
+  const userConnection = sessionConnections?.get(userId)
+  if (userConnection) {
+    userConnection.lastActivity = Date.now()
+  }
 
   // Broadcast updated online users list to all connections
   const onlineUsers = getOnlineUsers(sessionId)

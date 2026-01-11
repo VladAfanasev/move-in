@@ -187,7 +187,7 @@ export function CostCalculationForm({
         .map(member => ({
           userId: member.userId,
           name: member.fullName || member.email || "Unknown User",
-          percentage: member.userId === currentUser.id ? yourPercentage : 25, // Use current percentage for self
+          percentage: 25, // Always start with 25% for all members initially
           status: "adjusting" as const,
           isOnline: onlineMembers.includes(member.userId), // Check if online
         }))
@@ -200,17 +200,13 @@ export function CostCalculationForm({
     }
   }, [
     _members,
-    sessionMembers.length,
-    onlineMembers,
     currentUser.id,
-    yourPercentage,
     externalSessionMembers,
-    setSessionMembers,
-  ])
+  ]) // Remove circular dependencies
 
   // Update online status when online members change (only when using internal state)
   useEffect(() => {
-    if (!externalSessionMembers) {
+    if (!externalSessionMembers && sessionMembers.length > 0) {
       setSessionMembers(prevMembers =>
         prevMembers.map(member => ({
           ...member,
@@ -218,7 +214,7 @@ export function CostCalculationForm({
         })),
       )
     }
-  }, [onlineMembers, externalSessionMembers, setSessionMembers])
+  }, [onlineMembers, externalSessionMembers, sessionMembers.length]) // Add guard to prevent unnecessary updates
 
   // Calculate total costs (simplified - could be passed as prop)
   const totalCosts = Number(property.price) + 2500 + Number(property.price) * 0.02 + 750

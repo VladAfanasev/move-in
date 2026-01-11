@@ -3,7 +3,7 @@
 import type { User } from "@supabase/supabase-js"
 import { Calculator } from "lucide-react"
 import Image from "next/image"
-import { useEffect, useState } from "react"
+import { useMemo, useState } from "react"
 import { CostCalculationForm } from "@/app/features/cost-calculation/components/cost-calculation-form"
 import { CostEditPanel } from "@/app/features/cost-calculation/components/cost-edit-panel"
 import { Card, CardContent } from "@/components/ui/card"
@@ -59,12 +59,12 @@ export function CostCalculationPageClient({
   isSessionLocked = false,
 }: CostCalculationPageClientProps) {
   const [showCostEdit, setShowCostEdit] = useState(false)
-
-  // Session state for percentage negotiation
-  const [sessionMembers, setSessionMembers] = useState<SessionMember[]>([])
   const [yourPercentage, setYourPercentage] = useState(25)
   const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
-  const [loading, setLoading] = useState(true)
+  const [remoteMemberData, setRemoteMemberData] = useState<Record<string, {
+    percentage: number
+    status: "adjusting" | "confirmed"
+  }>>({})
 
   // Real-time session management
   const {
@@ -78,85 +78,63 @@ export function CostCalculationPageClient({
     sessionId: `${group.id}-${property.id}`,
     userId: currentUser.id,
     onPercentageUpdate: data => {
-      setSessionMembers(prev =>
-        prev.map(member =>
-          member.userId === data.userId
-            ? {
-                ...member,
-                percentage: data.percentage,
-                status: data.status as "adjusting" | "confirmed",
-              }
-            : member,
-        ),
-      )
+      setRemoteMemberData(prev => ({
+        ...prev,
+        [data.userId]: {
+          percentage: data.percentage,
+          status: data.status as "adjusting" | "confirmed",
+        }
+      }))
     },
     onStatusChange: data => {
-      setSessionMembers(prev =>
-        prev.map(member =>
-          member.userId === data.userId
-            ? { ...member, status: data.status as "adjusting" | "confirmed" }
-            : member,
-        ),
-      )
-    },
-    onOnlineMembersChange: members => {
-      setSessionMembers(prev =>
-        prev.map(member => ({
-          ...member,
-          isOnline: members.includes(member.userId),
-        })),
-      )
+      setRemoteMemberData(prev => ({
+        ...prev,
+        [data.userId]: {
+          ...prev[data.userId],
+          status: data.status as "adjusting" | "confirmed",
+        }
+      }))
     },
   })
 
-  // Initialize session members from actual group members
-  useEffect(() => {
-    if (members.length > 0 && sessionMembers.length === 0) {
-      const initialMembers: SessionMember[] = members
-        .filter(member => member.status === "active")
-        .sort((a, b) => {
-          // Current user always comes first
-          if (a.userId === currentUser.id) return -1
-          if (b.userId === currentUser.id) return 1
-          // Then sort alphabetically by name
-          const nameA = a.fullName || a.email || "Unknown User"
-          const nameB = b.fullName || b.email || "Unknown User"
-          return nameA.localeCompare(nameB)
-        })
-        .map(member => ({
-          userId: member.userId,
-          name: member.fullName || member.email || "Unknown User",
-          percentage: member.userId === currentUser.id ? yourPercentage : 25,
-          status: "adjusting" as const,
-          isOnline: onlineMembers.includes(member.userId),
-        }))
-
-      setSessionMembers(initialMembers)
-      setLoading(false)
-    }
-  }, [members, sessionMembers.length, onlineMembers, currentUser.id, yourPercentage])
-
-  // Update online status when online members change
-  useEffect(() => {
-    setSessionMembers(prevMembers =>
-      prevMembers.map(member => ({
-        ...member,
+  // Derive session members from actual members and real-time data
+  const sessionMembers = useMemo<SessionMember[]>(() => {
+    const activeMembers = members.filter(member => member.status === "active")
+    
+    return activeMembers
+      .sort((a, b) => {
+        // Current user always comes first
+        if (a.userId === currentUser.id) return -1
+        if (b.userId === currentUser.id) return 1
+        // Then sort alphabetically by name
+        const nameA = a.fullName || a.email || "Unknown User"
+        const nameB = b.fullName || b.email || "Unknown User"
+        return nameA.localeCompare(nameB)
+      })
+      .map(member => ({
+        userId: member.userId,
+        name: member.fullName || member.email || "Unknown User",
+        percentage: remoteMemberData[member.userId]?.percentage ?? 25,
+        status: remoteMemberData[member.userId]?.status ?? "adjusting",
         isOnline: onlineMembers.includes(member.userId),
-      })),
+      }))
+  }, [members, currentUser.id, onlineMembers, remoteMemberData])
+
+  // Calculate session totals - derived state
+  const totalPercentage = useMemo(() => {
+    return sessionMembers.reduce((sum, member) => {
+      if (member.userId === currentUser.id) {
+        return sum + yourPercentage
+      }
+      return sum + member.percentage
+    }, 0)
+  }, [sessionMembers, yourPercentage, currentUser.id])
+
+  const allConfirmed = useMemo(() => {
+    return sessionMembers.every(member =>
+      member.userId === currentUser.id ? yourStatus === "confirmed" : member.status === "confirmed",
     )
-  }, [onlineMembers])
-
-  // Calculate session totals
-  const totalPercentage = sessionMembers.reduce((sum, member) => {
-    if (member.userId === currentUser.id) {
-      return sum + yourPercentage
-    }
-    return sum + member.percentage
-  }, 0)
-
-  const allConfirmed = sessionMembers.every(member =>
-    member.userId === currentUser.id ? yourStatus === "confirmed" : member.status === "confirmed",
-  )
+  }, [sessionMembers, yourStatus, currentUser.id])
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("nl-NL", {
@@ -216,7 +194,9 @@ export function CostCalculationPageClient({
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="font-semibold text-muted-foreground text-sm">Totale kosten</div>
+                      <div className="font-semibold text-muted-foreground text-sm">
+                        Totale kosten
+                      </div>
                       <div className="text-muted-foreground text-xs">
                         Koopprijs + alle bijkosten • Tik om te bewerken
                       </div>
@@ -237,19 +217,12 @@ export function CostCalculationPageClient({
           {/* Progress Circle Card */}
           <Card>
             <CardContent className="py-6">
-              {loading ? (
-                <div className="animate-pulse space-y-4">
-                  <div className="mx-auto h-32 w-32 rounded-full bg-gray-200"></div>
-                  <div className="mx-auto h-4 w-3/4 rounded bg-gray-200"></div>
-                </div>
-              ) : (
-                <PropertyGoalIndicator
-                  percentage={totalPercentage}
-                  allConfirmed={allConfirmed}
-                  memberCount={sessionMembers.length}
-                  size="md"
-                />
-              )}
+              <PropertyGoalIndicator
+                percentage={totalPercentage}
+                allConfirmed={allConfirmed}
+                memberCount={sessionMembers.length}
+                size="md"
+              />
             </CardContent>
           </Card>
         </div>
@@ -263,12 +236,11 @@ export function CostCalculationPageClient({
             currentUser={currentUser}
             isSessionLocked={isSessionLocked}
             sessionMembers={sessionMembers}
-            setSessionMembers={setSessionMembers}
             yourPercentage={yourPercentage}
             setYourPercentage={setYourPercentage}
             yourStatus={yourStatus}
             setYourStatus={setYourStatus}
-            loading={loading}
+            loading={false}
             totalPercentage={totalPercentage}
             allConfirmed={allConfirmed}
             hideProgressCircle={true}
