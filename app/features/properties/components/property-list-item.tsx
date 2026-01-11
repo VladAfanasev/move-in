@@ -80,7 +80,7 @@ export function PropertyListItem({ property }: PropertyListItemProps) {
             ) : null}
 
             <div className="absolute top-3 right-3 flex gap-2 opacity-80 hover:opacity-100">
-              <AddPropertyToGroup propertyId={property.id} />
+              <AddPropertyToGroup propertyId={property.id} propertyStatus={property.status} />
               {/* <Button
                 variant="ghost"
                 size="sm"

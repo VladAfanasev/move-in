@@ -39,6 +39,9 @@ export async function addPropertyToGroupAction(formData: FormData) {
     return { success: true }
   } catch (error) {
     console.error("Error adding property to group:", error)
+    if (error instanceof Error) {
+      throw error
+    }
     throw new Error("Failed to add property to group")
   }
 }
