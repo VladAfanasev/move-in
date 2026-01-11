@@ -2,7 +2,7 @@
 
 import type { User } from "@supabase/supabase-js"
 import { Check, Plus, Scale, Target, User as UserIcon } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { CalculationInvitePopover } from "@/app/features/cost-calculation/components/calculation-invite-popover"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -50,6 +50,24 @@ interface CostCalculationFormProps {
   members: Member[]
   currentUser: User
   isSessionLocked?: boolean
+  // Optional props for when session state is managed externally
+  sessionMembers?: SessionMember[]
+  setSessionMembers?: React.Dispatch<React.SetStateAction<SessionMember[]>>
+  yourPercentage?: number
+  setYourPercentage?: React.Dispatch<React.SetStateAction<number>>
+  yourStatus?: "adjusting" | "confirmed"
+  setYourStatus?: React.Dispatch<React.SetStateAction<"adjusting" | "confirmed">>
+  loading?: boolean
+  totalPercentage?: number
+  allConfirmed?: boolean
+  hideProgressCircle?: boolean
+  // Optional realtime props for when realtime is managed externally
+  onlineMembers?: string[]
+  isConnected?: boolean
+  connectionQuality?: "excellent" | "good" | "poor" | "disconnected"
+  emitPercentageUpdate?: (percentage: number, status: "adjusting" | "confirmed") => void
+  emitStatusChange?: (status: "adjusting" | "confirmed") => void
+  getOnlineMemberCount?: () => number
 }
 
 export function CostCalculationForm({
@@ -58,19 +76,49 @@ export function CostCalculationForm({
   members: _members,
   currentUser,
   isSessionLocked = false,
+  // External session state props
+  sessionMembers: externalSessionMembers,
+  setSessionMembers: externalSetSessionMembers,
+  yourPercentage: externalYourPercentage,
+  setYourPercentage: externalSetYourPercentage,
+  yourStatus: externalYourStatus,
+  setYourStatus: externalSetYourStatus,
+  loading: externalLoading,
+  totalPercentage: externalTotalPercentage,
+  allConfirmed: externalAllConfirmed,
+  hideProgressCircle = false,
+  // External realtime props
+  onlineMembers: externalOnlineMembers,
+  isConnected: externalIsConnected,
+  connectionQuality: externalConnectionQuality,
+  emitPercentageUpdate: externalEmitPercentageUpdate,
+  emitStatusChange: externalEmitStatusChange,
+  getOnlineMemberCount: externalGetOnlineMemberCount,
 }: CostCalculationFormProps) {
-  // Session state for percentage negotiation
-  const [sessionMembers, setSessionMembers] = useState<SessionMember[]>([])
-  const [yourPercentage, setYourPercentage] = useState(25)
-  const [yourStatus, setYourStatus] = useState<"adjusting" | "confirmed">("adjusting")
-  const [loading, setLoading] = useState(true)
+  // Session state for percentage negotiation (use external if available)
+  const [internalSessionMembers, setInternalSessionMembers] = useState<SessionMember[]>([])
+  const [internalYourPercentage, setInternalYourPercentage] = useState(25)
+  const [internalYourStatus, setInternalYourStatus] = useState<"adjusting" | "confirmed">(
+    "adjusting",
+  )
+  const [internalLoading, setInternalLoading] = useState(true)
 
-  // Real-time session management
-  const { onlineMembers, emitPercentageUpdate, emitStatusChange, getOnlineMemberCount } =
-    useRealtimeSession({
-      sessionId: `${group.id}-${property.id}`, // Use group-property format for real-time
-      userId: currentUser.id,
-      onPercentageUpdate: data => {
+  // Use external state if provided, otherwise use internal state
+  const sessionMembers = externalSessionMembers ?? internalSessionMembers
+  const setSessionMembers = externalSetSessionMembers ?? setInternalSessionMembers
+  const yourPercentage = externalYourPercentage ?? internalYourPercentage
+  const setYourPercentage = externalSetYourPercentage ?? setInternalYourPercentage
+  const yourStatus = externalYourStatus ?? internalYourStatus
+  const setYourStatus = externalSetYourStatus ?? setInternalYourStatus
+  const loading = externalLoading ?? internalLoading
+
+  // Real-time session management (only when using internal state)
+  const internalRealtimeSession = useRealtimeSession({
+    sessionId: `${group.id}-${property.id}`, // Use group-property format for real-time
+    userId: currentUser.id,
+    onPercentageUpdate: data => {
+      if (!externalSessionMembers) {
+        console.log("Processing percentage update from remote user:", data)
         // Update session members when receiving real-time percentage updates
         setSessionMembers(prev =>
           prev.map(member =>
@@ -83,8 +131,11 @@ export function CostCalculationForm({
               : member,
           ),
         )
-      },
-      onStatusChange: data => {
+      }
+    },
+    onStatusChange: data => {
+      if (!externalSessionMembers) {
+        console.log("Processing status change from remote user:", data)
         // Update session members when receiving real-time status changes
         setSessionMembers(prev =>
           prev.map(member =>
@@ -93,8 +144,11 @@ export function CostCalculationForm({
               : member,
           ),
         )
-      },
-      onOnlineMembersChange: members => {
+      }
+    },
+    onOnlineMembersChange: members => {
+      if (!externalSessionMembers) {
+        console.log("Online members changed:", members)
         // Update online status for all session members
         setSessionMembers(prev =>
           prev.map(member => ({
@@ -102,62 +156,100 @@ export function CostCalculationForm({
             isOnline: members.includes(member.userId),
           })),
         )
-      },
-    })
+      }
+    },
+  })
 
-  // Initialize session members from actual group members
+  // Use external realtime props if available, otherwise use internal
+  const onlineMembers = externalOnlineMembers ?? internalRealtimeSession.onlineMembers
+  const isConnected = externalIsConnected ?? internalRealtimeSession.isConnected
+  const connectionQuality = externalConnectionQuality ?? internalRealtimeSession.connectionQuality
+  const emitPercentageUpdate =
+    externalEmitPercentageUpdate ?? internalRealtimeSession.emitPercentageUpdate
+  const emitStatusChange = externalEmitStatusChange ?? internalRealtimeSession.emitStatusChange
+  const getOnlineMemberCount =
+    externalGetOnlineMemberCount ?? internalRealtimeSession.getOnlineMemberCount
+
+  // Initialize session members from actual group members (only when using internal state)
   useEffect(() => {
-    if (_members.length > 0 && sessionMembers.length === 0) {
+    if (!externalSessionMembers && _members.length > 0 && sessionMembers.length === 0) {
       const initialMembers: SessionMember[] = _members
         .filter(member => member.status === "active")
+        .sort((a, b) => {
+          // Current user always comes first
+          if (a.userId === currentUser.id) return -1
+          if (b.userId === currentUser.id) return 1
+          // Then sort alphabetically by name
+          const nameA = a.fullName || a.email || "Unknown User"
+          const nameB = b.fullName || b.email || "Unknown User"
+          return nameA.localeCompare(nameB)
+        })
         .map(member => ({
           userId: member.userId,
           name: member.fullName || member.email || "Unknown User",
-          percentage: 25, // Default percentage
+          percentage: 25, // Always start with 25% for all members initially
           status: "adjusting" as const,
           isOnline: onlineMembers.includes(member.userId), // Check if online
         }))
 
       setSessionMembers(initialMembers)
+      setInternalLoading(false)
+    } else if (externalSessionMembers) {
+      // If using external state, don't manage loading internally
+      setInternalLoading(false)
     }
-  }, [_members, sessionMembers.length, onlineMembers])
+  }, [
+    _members,
+    currentUser.id,
+    externalSessionMembers,
+    onlineMembers,
+    setSessionMembers,
+    sessionMembers.length,
+  ])
 
-  // Update online status when online members change
+  // Update online status when online members change (only when using internal state)
   useEffect(() => {
-    setSessionMembers(prevMembers =>
-      prevMembers.map(member => ({
-        ...member,
-        isOnline: onlineMembers.includes(member.userId),
-      })),
-    )
-  }, [onlineMembers])
+    if (!externalSessionMembers && sessionMembers.length > 0) {
+      setSessionMembers(prevMembers =>
+        prevMembers.map(member => ({
+          ...member,
+          isOnline: onlineMembers.includes(member.userId),
+        })),
+      )
+    }
+  }, [onlineMembers, externalSessionMembers, sessionMembers.length, setSessionMembers])
 
   // Calculate total costs (simplified - could be passed as prop)
   const totalCosts = Number(property.price) + 2500 + Number(property.price) * 0.02 + 750
 
-  // Calculate session totals
-  const totalPercentage = sessionMembers.reduce((sum, member) => {
-    if (member.userId === currentUser.id) {
-      return sum + yourPercentage
-    }
-    return sum + member.percentage
-  }, 0)
+  // Calculate session totals (use external if provided)
+  const totalPercentage =
+    externalTotalPercentage ??
+    sessionMembers.reduce((sum, member) => {
+      if (member.userId === currentUser.id) {
+        return sum + yourPercentage
+      }
+      return sum + member.percentage
+    }, 0)
 
-  const yourAmount = Math.round((totalCosts * yourPercentage) / 100)
-  const allConfirmed = sessionMembers.every(member =>
-    member.userId === currentUser.id ? yourStatus === "confirmed" : member.status === "confirmed",
-  )
+  const allConfirmed =
+    externalAllConfirmed ??
+    sessionMembers.every(member =>
+      member.userId === currentUser.id ? yourStatus === "confirmed" : member.status === "confirmed",
+    )
+
+  // Debounced emit function
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Handle percentage change
   const handlePercentageChange = (newPercentage: number) => {
     if (yourStatus === "confirmed" || isSessionLocked) return
+
+    // Update local state first for immediate UI feedback
     setYourPercentage(newPercentage)
     setYourStatus("adjusting")
 
-    // Emit real-time update
-    emitPercentageUpdate(newPercentage, "adjusting")
-
-    // Update session members locally for immediate feedback
+    // Update session members locally for immediate feedback (only for current user)
     setSessionMembers(prev =>
       prev.map(member =>
         member.userId === currentUser.id
@@ -165,6 +257,15 @@ export function CostCalculationForm({
           : member,
       ),
     )
+
+    // Debounced emit to avoid spam during rapid slider movements
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current)
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      emitPercentageUpdate(newPercentage, "adjusting")
+    }, 150) // 150ms debounce for smoother UX
   }
 
   // Handle confirm
@@ -212,27 +313,14 @@ export function CostCalculationForm({
     }).format(amount)
   }
 
-  // Initialize session members
-  const initializeSessionMembers = useCallback(() => {
-    const members = _members
-      .filter(m => m.status === "active")
-      .map((member, index) => ({
-        userId: member.userId,
-        name:
-          member.userId === currentUser.id
-            ? `${member.fullName || member.email?.split("@")[0] || "Unknown User"} (U)`
-            : member.fullName || member.email?.split("@")[0] || `Member ${index + 1}`,
-        percentage: member.userId === currentUser.id ? yourPercentage : 25,
-        status: "adjusting" as const,
-      }))
-    setSessionMembers(members)
-    setLoading(false)
-  }, [_members, currentUser.id, yourPercentage])
-
-  // Initialize on component mount
+  // Cleanup debounce timeout on unmount
   useEffect(() => {
-    initializeSessionMembers()
-  }, [initializeSessionMembers])
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current)
+      }
+    }
+  }, [])
 
   if (loading) {
     return (
@@ -254,10 +342,9 @@ export function CostCalculationForm({
     <TooltipProvider delayDuration={50}>
       <div className="space-y-4">
         {/* Investment Negotiation - Main Focus */}
-        <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
-          {/* Progress & Your Investment */}
-          <div className="space-y-4 lg:col-span-1 xl:col-span-2">
-            {/* Goal Progress Indicator */}
+        <div className="space-y-4">
+          {/* Goal Progress Indicator - Conditionally hidden */}
+          {!hideProgressCircle && (
             <Card>
               <CardContent className="pt-6 pb-6">
                 <div className="flex justify-center">
@@ -271,251 +358,178 @@ export function CostCalculationForm({
                 </div>
               </CardContent>
             </Card>
-
-            {/* Your Investment */}
-            <Card>
-              <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">Jouw investering</CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            // Calculate what percentage is needed to reach exactly 100%
-                            const otherMembersTotal = sessionMembers
-                              .filter(member => member.userId !== currentUser.id)
-                              .reduce((sum, member) => sum + member.percentage, 0)
-
-                            const neededPercentage = 100 - otherMembersTotal
-                            const constrainedPercentage = Math.max(
-                              10,
-                              Math.min(90, neededPercentage),
-                            )
-
-                            if (yourStatus === "confirmed" || isSessionLocked) return
-                            handlePercentageChange(constrainedPercentage)
-                          }}
-                          disabled={yourStatus === "confirmed" || isSessionLocked}
-                        >
-                          <Target className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Vul automatisch aan tot 100%</p>
-                      </TooltipContent>
-                    </Tooltip>
-
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            // Calculate equal split among all members
-                            const totalMembers = sessionMembers.length
-                            const equalPercentage = 100 / totalMembers
-                            const constrainedPercentage = Math.max(
-                              10,
-                              Math.min(90, equalPercentage),
-                            )
-
-                            if (yourStatus === "confirmed" || isSessionLocked) return
-                            handlePercentageChange(constrainedPercentage)
-                          }}
-                          disabled={yourStatus === "confirmed" || isSessionLocked}
-                        >
-                          <Scale className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Gelijke verdeling</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {yourStatus === "adjusting" ? (
-                  <>
-                    <div>
-                      <div className="mb-3 flex items-center justify-between">
-                        <span className="font-medium">Percentage</span>
-                        <span className="font-semibold text-xl transition-all duration-300 ease-out">
-                          {yourPercentage.toFixed(1)}%
-                        </span>
-                      </div>
-                      <Slider
-                        value={[yourPercentage]}
-                        onValueChange={value => handlePercentageChange(value[0])}
-                        min={10}
-                        max={90}
-                        step={0.1}
-                        className="mb-2"
-                      />
-                      <div className="flex justify-between text-muted-foreground text-xs">
-                        <span>10%</span>
-                        <span>50%</span>
-                        <span>90%</span>
-                      </div>
-                    </div>
-
-                    <div className="rounded-lg bg-muted p-4 text-center transition-all duration-300 ease-out">
-                      <div className="font-semibold text-2xl transition-all duration-500 ease-out">
-                        {formatCurrency(yourAmount)}
-                      </div>
-                      <div className="text-muted-foreground text-sm">Jouw investering</div>
-                    </div>
-
-                    <Button
-                      onClick={handleConfirm}
-                      disabled={!canConfirm}
-                      className="w-full"
-                      size="lg"
-                    >
-                      {canConfirm
-                        ? `Bevestig ${yourPercentage.toFixed(1)}%`
-                        : yourPercentage < 10 || yourPercentage > 90
-                          ? "Percentage moet tussen 10-90% zijn"
-                          : "Totaal moet 100% zijn om te bevestigen"}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <div className="motion-safe:fade-in relative rounded-lg border border-green-200 bg-green-50 p-4 text-center shadow-sm motion-safe:animate-in motion-safe:duration-500 dark:border-green-800 dark:bg-green-900/20">
-                      {/* Success indicator */}
-                      <div className="-top-3 -right-3 absolute">
-                        <output
-                          className="motion-safe:zoom-in motion-safe:bounce-in flex h-8 w-8 items-center justify-center rounded-full bg-green-500 shadow-lg motion-safe:animate-in motion-safe:duration-500"
-                          aria-label="Succesvol bevestigd"
-                        >
-                          <Check
-                            className="motion-safe:zoom-in h-4 w-4 text-white motion-safe:animate-in motion-safe:delay-300 motion-safe:duration-300"
-                            aria-hidden="true"
-                          />
-                        </output>
-                        {/* Pulse ring animation for extra attention */}
-                        <div className="absolute inset-0 h-8 w-8 animate-ping-limited rounded-full bg-green-400/30" />
-                      </div>
-
-                      <div className="mt-2 font-semibold text-2xl text-green-700 transition-all duration-500 dark:text-green-300">
-                        {yourPercentage.toFixed(1)}%
-                      </div>
-                      <div className="font-medium text-green-600 transition-all duration-500 dark:text-green-400">
-                        {formatCurrency(yourAmount)}
-                      </div>
-                      <div className="mt-1 text-green-600/80 text-xs dark:text-green-400/80">
-                        ✓ Bevestigd
-                      </div>
-                    </div>
-
-                    <Button
-                      onClick={handleChangeMind}
-                      variant="outline"
-                      className="w-full border-green-200 text-green-700 transition-all duration-300 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/20"
-                    >
-                      Verander mijn aandeel
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+          )}
 
           {/* Members Panel */}
-          <div>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <UserIcon className="h-4 w-4" />
-                      <div>
-                        <span>Groepsleden</span>
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <UserIcon className="h-4 w-4" />
+                    <div>
+                      <span>Groepsleden</span>
+                      <div className="flex items-center gap-2">
                         <div className="font-normal text-muted-foreground text-xs">
                           {getOnlineMemberCount()}{" "}
-                          {getOnlineMemberCount() === 1 ? "lid actief" : "leden actief"} in deze
-                          sessie
+                          {getOnlineMemberCount() === 1 ? "lid actief" : "leden actief"}
                         </div>
+                        {/* Connection status indicator */}
+                        <div
+                          className={`h-2 w-2 rounded-full ${
+                            !isConnected
+                              ? "animate-pulse bg-red-500"
+                              : connectionQuality === "excellent"
+                                ? "bg-green-500"
+                                : connectionQuality === "good"
+                                  ? "bg-yellow-500"
+                                  : "bg-orange-500"
+                          }`}
+                          title={
+                            !isConnected
+                              ? "Verbinding verbroken"
+                              : `Verbinding: ${connectionQuality}`
+                          }
+                        />
                       </div>
                     </div>
-                    <CalculationInvitePopover
-                      groupId={group.id}
-                      propertyId={property.id}
-                      groupName={group.name}
-                    >
-                      <Button variant="outline" size="sm">
-                        <Plus className="mr-1 h-3 w-3" />
-                        Uitnodigen
-                      </Button>
-                    </CalculationInvitePopover>
                   </div>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 sm:space-y-3">
-                  {sessionMembers.map(member => {
-                    const isYou = member.userId === currentUser.id
-                    const displayStatus = isYou ? yourStatus : member.status
-                    const currentPercentage = isYou ? yourPercentage : member.percentage
-                    const memberAmount = (totalCosts * currentPercentage) / 100
+                  <CalculationInvitePopover
+                    groupId={group.id}
+                    propertyId={property.id}
+                    groupName={group.name}
+                  >
+                    <Button variant="outline" size="sm">
+                      <Plus className="mr-1 h-3 w-3" />
+                      Uitnodigen
+                    </Button>
+                  </CalculationInvitePopover>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2 sm:space-y-3">
+                {sessionMembers.map(member => {
+                  const isYou = member.userId === currentUser.id
+                  const displayStatus = isYou ? yourStatus : member.status
+                  const currentPercentage = isYou ? yourPercentage : member.percentage
+                  const memberAmount = (totalCosts * currentPercentage) / 100
 
-                    return (
-                      <div
-                        key={member.userId}
-                        className={`relative overflow-hidden rounded-xl transition-all duration-300 ${
-                          displayStatus === "confirmed"
-                            ? "border-2 border-green-500 bg-green-50/50 shadow-lg dark:border-green-400 dark:bg-green-900/20"
-                            : isYou
-                              ? "border-2 border-primary bg-primary/5 shadow-lg"
-                              : "border border-muted bg-card/50 hover:bg-card/80 hover:shadow-sm"
-                        }`}
-                      >
-                        <div className="space-y-3 p-4">
-                          {/* Header with name, status, and online indicator */}
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {/* Member avatar circle */}
-                              <div
-                                className={`flex h-10 w-10 items-center justify-center rounded-full font-semibold text-sm ${
-                                  isYou
-                                    ? "bg-primary text-primary-foreground"
-                                    : "bg-muted text-muted-foreground"
-                                }`}
-                              >
-                                {member.name.charAt(0).toUpperCase()}
-                              </div>
-
-                              <div className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <span className={`font-medium ${isYou ? "text-primary" : ""}`}>
-                                    {member.name}
-                                  </span>
-                                  {member.isOnline && (
-                                    <div className="relative">
-                                      <div
-                                        className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm"
-                                        title="Online nu"
-                                      />
-                                      {/* Breathing animation ring */}
-                                      <div
-                                        className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-green-400/50 motion-safe:animate-ping"
-                                        aria-hidden="true"
-                                      />
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-muted-foreground text-xs">
-                                  {displayStatus === "confirmed"
-                                    ? "Bevestigd"
-                                    : "Aan het aanpassen"}
-                                </div>
-                              </div>
+                  return (
+                    <div
+                      key={member.userId}
+                      className={`relative overflow-hidden rounded-xl transition-all duration-300 ${
+                        displayStatus === "confirmed"
+                          ? "border-2 border-green-500 bg-green-50/50 shadow-lg dark:border-green-400 dark:bg-green-900/20"
+                          : isYou
+                            ? "border-2 border-primary bg-primary/5 shadow-lg"
+                            : "border border-muted bg-card/50 hover:bg-card/80 hover:shadow-sm"
+                      }`}
+                    >
+                      <div className="space-y-3 p-4">
+                        {/* Header with name, status, and online indicator */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            {/* Member avatar circle */}
+                            <div
+                              className={`flex h-10 w-10 items-center justify-center rounded-full font-semibold text-sm ${
+                                isYou
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {member.name.charAt(0).toUpperCase()}
                             </div>
 
-                            {/* Confirmation badge */}
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-medium ${isYou ? "text-primary" : ""}`}>
+                                  {member.name}
+                                </span>
+                                {member.isOnline && (
+                                  <div className="relative">
+                                    <div
+                                      className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm"
+                                      title="Online nu"
+                                    />
+                                    {/* Breathing animation ring */}
+                                    <div
+                                      className="absolute inset-0 h-2.5 w-2.5 rounded-full bg-green-400/50 motion-safe:animate-ping"
+                                      aria-hidden="true"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-muted-foreground text-xs">
+                                {displayStatus === "confirmed" ? "Bevestigd" : "Aan het aanpassen"}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right side: Action buttons for current user or confirmation badge */}
+                          <div className="flex items-center gap-2">
+                            {isYou && displayStatus === "adjusting" && (
+                              <>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Calculate what percentage is needed to reach exactly 100%
+                                        const otherMembersTotal = sessionMembers
+                                          .filter(member => member.userId !== currentUser.id)
+                                          .reduce((sum, member) => sum + member.percentage, 0)
+
+                                        const neededPercentage = 100 - otherMembersTotal
+                                        const constrainedPercentage = Math.max(
+                                          10,
+                                          Math.min(90, neededPercentage),
+                                        )
+
+                                        if (yourStatus === "confirmed" || isSessionLocked) return
+                                        handlePercentageChange(constrainedPercentage)
+                                      }}
+                                      disabled={yourStatus === "confirmed" || isSessionLocked}
+                                    >
+                                      <Target className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Vul automatisch aan tot 100%</p>
+                                  </TooltipContent>
+                                </Tooltip>
+
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Calculate equal split among all members
+                                        const totalMembers = sessionMembers.length
+                                        const equalPercentage = 100 / totalMembers
+                                        const constrainedPercentage = Math.max(
+                                          10,
+                                          Math.min(90, equalPercentage),
+                                        )
+
+                                        if (yourStatus === "confirmed" || isSessionLocked) return
+                                        handlePercentageChange(constrainedPercentage)
+                                      }}
+                                      disabled={yourStatus === "confirmed" || isSessionLocked}
+                                    >
+                                      <Scale className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Gelijke verdeling</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </>
+                            )}
+
+                            {/* Confirmation badge for all confirmed users */}
                             {displayStatus === "confirmed" && (
                               <div className="relative">
                                 <output
@@ -529,20 +543,39 @@ export function CostCalculationForm({
                               </div>
                             )}
                           </div>
+                        </div>
 
-                          {/* Investment details */}
-                          <div className="space-y-2">
-                            {/* Percentage and amount with smooth transitions */}
-                            <div className="flex items-baseline justify-between">
-                              <span className="font-bold text-2xl text-foreground transition-all duration-500 ease-out">
-                                {currentPercentage.toFixed(1)}%
-                              </span>
-                              <span className="font-medium text-muted-foreground text-sm transition-all duration-500 ease-out">
-                                {formatCurrency(memberAmount)}
-                              </span>
+                        {/* Investment details */}
+                        <div className="space-y-2">
+                          {/* Percentage and amount with smooth transitions */}
+                          <div className="flex items-baseline justify-between">
+                            <span className="font-bold text-2xl text-foreground transition-all duration-500 ease-out">
+                              {currentPercentage.toFixed(1)}%
+                            </span>
+                            <span className="font-medium text-muted-foreground text-sm transition-all duration-500 ease-out">
+                              {formatCurrency(memberAmount)}
+                            </span>
+                          </div>
+
+                          {/* Progress bar - Interactive for current user, read-only for others */}
+                          {isYou && displayStatus === "adjusting" ? (
+                            <div className="space-y-2">
+                              <Slider
+                                value={[yourPercentage]}
+                                onValueChange={value => handlePercentageChange(value[0])}
+                                min={10}
+                                max={90}
+                                step={0.1}
+                                className="transition-all duration-700 ease-out"
+                                disabled={yourStatus === "confirmed" || isSessionLocked}
+                              />
+                              <div className="flex justify-between text-muted-foreground text-xs">
+                                <span>10%</span>
+                                <span>50%</span>
+                                <span>90%</span>
+                              </div>
                             </div>
-
-                            {/* Visual progress indicator with smooth animation */}
+                          ) : (
                             <div>
                               <Progress
                                 value={currentPercentage}
@@ -550,15 +583,44 @@ export function CostCalculationForm({
                                 max={100}
                               />
                             </div>
-                          </div>
+                          )}
                         </div>
+
+                        {/* Confirm button for current user */}
+                        {isYou && (
+                          <div className="pt-2">
+                            {displayStatus === "adjusting" ? (
+                              <Button
+                                onClick={handleConfirm}
+                                disabled={!canConfirm}
+                                className="w-full"
+                                size="sm"
+                              >
+                                {canConfirm
+                                  ? `Bevestig ${yourPercentage.toFixed(1)}%`
+                                  : yourPercentage < 10 || yourPercentage > 90
+                                    ? "Percentage moet tussen 10-90% zijn"
+                                    : "Totaal moet 100% zijn om te bevestigen"}
+                              </Button>
+                            ) : (
+                              <Button
+                                onClick={handleChangeMind}
+                                variant="outline"
+                                className="w-full border-green-200 text-green-700 transition-all duration-300 hover:bg-green-50 dark:border-green-800 dark:text-green-300 dark:hover:bg-green-900/20"
+                                size="sm"
+                              >
+                                Verander mijn aandeel
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
-                    )
-                  })}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </TooltipProvider>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useId, useState } from "react"
 import { getGoalProgressMessage, getProgressStateColor } from "@/lib/goal-progress-utils"
 import { cn } from "@/lib/utils"
 
@@ -24,6 +24,7 @@ export function PropertyGoalIndicator({
   const [animatedPercentage, setAnimatedPercentage] = useState(0)
   const [showCelebration, setShowCelebration] = useState(false)
   const [lastMilestone, setLastMilestone] = useState(0)
+  const progressMessageId = useId()
 
   // Animate percentage changes
   useEffect(() => {
@@ -147,13 +148,12 @@ export function PropertyGoalIndicator({
       {/* Fixed height container for status message to prevent layout shifts */}
       <div className="mb-4 flex h-16 items-center justify-center">
         {showMessage && (
-          <div className="text-center" id="progress-message">
-            <div
+          <div className="text-center" id={progressMessageId}>
+            <output
               className={cn(
                 "mb-1 flex items-center justify-center gap-2 px-2",
                 getProgressStateColor(percentage, allConfirmed),
               )}
-              role="status"
               aria-live="polite"
             >
               {progressMessage.icon && (
@@ -162,7 +162,7 @@ export function PropertyGoalIndicator({
                 </span>
               )}
               <span className="font-semibold text-sm sm:text-base">{progressMessage.message}</span>
-            </div>
+            </output>
             {progressMessage.actionHint && (
               <p className="mx-auto max-w-xs px-4 text-muted-foreground text-xs sm:text-sm">
                 {progressMessage.actionHint}
@@ -224,7 +224,7 @@ export function PropertyGoalIndicator({
           aria-label={`Investeringsdoel: ${animatedPercentage.toFixed(1)} procent van 100 procent ${
             allConfirmed && percentage === 100 ? "voltooid" : "bereikt"
           }`}
-          aria-describedby={showMessage ? "progress-message" : undefined}
+          aria-describedby={showMessage ? progressMessageId : undefined}
         >
           {/* Background Circle */}
           <circle

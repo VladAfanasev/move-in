@@ -22,7 +22,10 @@ export async function POST(
   } = await supabase.auth.getUser()
 
   if (authError || !user) {
-    redirect(`/login?returnTo=/join/${groupId}`)
+    const loginRedirect = redirectUrl
+      ? `/login?redirectTo=/join/${groupId}?redirect=${encodeURIComponent(redirectUrl)}`
+      : `/login?redirectTo=/join/${groupId}`
+    redirect(loginRedirect)
   }
 
   // Dynamic imports to avoid build-time database connection
@@ -57,8 +60,8 @@ export async function POST(
     .limit(1)
 
   if (existingMember.length > 0) {
-    // User is already a member, redirect to specified page or group page
-    redirect(redirectUrl || `/dashboard/groups/${groupId}`)
+    // User is already a member, redirect to group page
+    redirect(`/dashboard/groups/${groupId}`)
   }
 
   try {
@@ -76,8 +79,10 @@ export async function POST(
       .limit(1)
 
     if (existingRequest.length > 0) {
-      // Request already exists, redirect to pending state
-      redirect(redirectUrl || `/dashboard/groups/${groupId}`)
+      // Request already exists, redirect to original URL or group page with pending status
+      const targetUrl = redirectUrl || `/dashboard/groups/${groupId}`
+      const separator = targetUrl.includes("?") ? "&" : "?"
+      redirect(`${targetUrl}${separator}joined=pending`)
     }
 
     // Generate secure token for this request
@@ -109,6 +114,8 @@ export async function POST(
     )
   }
 
-  // Redirect to the specified page or group page after successful join request
-  redirect(redirectUrl || `/dashboard/groups/${groupId}`)
+  // Redirect to the original URL or group page to show pending status
+  const targetUrl = redirectUrl || `/dashboard/groups/${groupId}`
+  const separator = targetUrl.includes("?") ? "&" : "?"
+  redirect(`${targetUrl}${separator}joined=pending`)
 }

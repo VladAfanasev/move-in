@@ -28,27 +28,42 @@ export async function PATCH(
     // Broadcast the change to other users without database storage
     if (currentPercentage !== undefined) {
       console.log(
-        `📡 Broadcasting percentage update: ${currentPercentage} from ${user.id} to session ${sessionId}`,
+        `📡 Broadcasting percentage update: ${currentPercentage}% from ${user.id} to session ${sessionId}`,
       )
       const broadcastData = {
         type: "percentage-update",
         userId: user.id,
         percentage: currentPercentage,
         status: status || "adjusting",
+        timestamp: Date.now(),
       }
       console.log("📤 Broadcast data:", broadcastData)
-      broadcastToSession(sessionId, broadcastData, user.id)
+
+      try {
+        broadcastToSession(sessionId, broadcastData, user.id)
+        console.log(`✅ Successfully broadcasted percentage update to session ${sessionId}`)
+      } catch (error) {
+        console.error(`❌ Failed to broadcast percentage update:`, error)
+        return NextResponse.json({ error: "Broadcast failed" }, { status: 500 })
+      }
     } else if (status) {
-      console.log(`Broadcasting status change: ${status} from ${user.id}`)
-      broadcastToSession(
-        sessionId,
-        {
-          type: "status-change",
-          userId: user.id,
-          status,
-        },
-        user.id,
+      console.log(
+        `📡 Broadcasting status change: ${status} from ${user.id} to session ${sessionId}`,
       )
+      const statusData = {
+        type: "status-change",
+        userId: user.id,
+        status,
+        timestamp: Date.now(),
+      }
+
+      try {
+        broadcastToSession(sessionId, statusData, user.id)
+        console.log(`✅ Successfully broadcasted status change to session ${sessionId}`)
+      } catch (error) {
+        console.error(`❌ Failed to broadcast status change:`, error)
+        return NextResponse.json({ error: "Broadcast failed" }, { status: 500 })
+      }
     }
 
     return NextResponse.json({ success: true })

@@ -17,11 +17,11 @@ const PropertiesOverviewPage: React.FC = () => {
   return (
     <div className="flex flex-1 flex-col">
       <SiteHeader title="Woningen overzicht" />
-      <div className="@container/main flex flex-1 flex-col p-6">
+      <div className="@container/main flex flex-1 flex-col overflow-hidden p-4 sm:p-6">
         <Suspense
           fallback={
-            <div className="flex gap-6">
-              <div className="w-80 flex-shrink-0">
+            <div className="flex flex-col gap-6 lg:flex-row">
+              <div className="hidden w-80 flex-shrink-0 lg:block">
                 <div className="space-y-4">
                   <div className="h-8 animate-pulse rounded bg-gray-200" />
                   <div className="h-32 animate-pulse rounded bg-gray-200" />
@@ -29,6 +29,9 @@ const PropertiesOverviewPage: React.FC = () => {
                 </div>
               </div>
               <div className="flex-1">
+                <div className="mb-4 block lg:hidden">
+                  <div className="h-8 w-20 animate-pulse rounded bg-gray-200" />
+                </div>
                 <PropertiesList properties={[]} isLoading={true} />
               </div>
             </div>

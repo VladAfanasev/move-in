@@ -15,7 +15,7 @@ interface PropertyListItemProps {
   isFavorite?: boolean
 }
 
-export function PropertyListItem({ property, onViewDetails }: PropertyListItemProps) {
+export function PropertyListItem({ property }: PropertyListItemProps) {
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price)
     return new Intl.NumberFormat("nl-NL", {
@@ -61,9 +61,9 @@ export function PropertyListItem({ property, onViewDetails }: PropertyListItemPr
   return (
     <Card className="overflow-hidden rounded-none border-none shadow-none">
       <CardContent className="p-0">
-        <div className="flex">
+        <div className="flex flex-col sm:flex-row">
           {/* Image */}
-          <div className="relative h-48 w-64 flex-shrink-0">
+          <div className="relative h-48 w-full flex-shrink-0 sm:w-64">
             <Image
               src={primaryImage}
               alt={property.address}
@@ -97,20 +97,16 @@ export function PropertyListItem({ property, onViewDetails }: PropertyListItemPr
           </div>
 
           {/* Content */}
-          <div className="flex flex-1 flex-col justify-between px-4">
+          <div className="flex flex-1 flex-col justify-between p-4 sm:px-4">
             <div>
               {/* Header */}
               <div className="mb-2 flex flex-col items-start space-y-4">
-                <button
-                  type="button"
-                  onClick={() => onViewDetails?.(property.id)}
-                  className="flex h-full flex-col text-left"
-                >
+                <div className="flex h-full flex-col text-left">
                   <h3 className="mb-1 line-clamp-1 font-semibold text-lg">{property.address}</h3>
                   <div className="flex items-center text-gray-600 text-sm">
                     {property.zipCode} {property.city}
                   </div>
-                </button>
+                </div>
                 <div className="grid gap-2">
                   <div
                     className={clsx(

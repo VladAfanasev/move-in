@@ -27,9 +27,9 @@ export function PropertiesList({
       <div className="space-y-4">
         {Array.from({ length: 6 }).map((_, index) => (
           // biome-ignore lint/suspicious/noArrayIndexKey: Loading skeleton only
-          <div key={index} className="flex overflow-hidden rounded-lg border">
-            <Skeleton className="h-48 w-64 flex-shrink-0" />
-            <div className="flex flex-1 flex-col justify-between p-6">
+          <div key={index} className="flex flex-col overflow-hidden rounded-lg border sm:flex-row">
+            <Skeleton className="h-48 w-full flex-shrink-0 sm:w-64" />
+            <div className="flex flex-1 flex-col justify-between p-4 sm:p-6">
               <div>
                 <Skeleton className="mb-2 h-6 w-3/4" />
                 <Skeleton className="mb-3 h-4 w-1/2" />
@@ -62,7 +62,7 @@ export function PropertiesList({
   }
 
   return (
-    <>
+    <div className="space-y-4 overflow-x-hidden">
       {properties.map((property, index) => (
         <div key={property.id}>
           <PropertyListItem
@@ -75,6 +75,6 @@ export function PropertiesList({
           {index < properties.length - 1 && <Separator className="my-4" />}
         </div>
       ))}
-    </>
+    </div>
   )
 }

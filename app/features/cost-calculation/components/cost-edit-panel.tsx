@@ -52,13 +52,13 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
 
   return (
     <div className="flex h-full flex-col bg-background">
-      <div className="flex items-center justify-between border-b bg-background p-4">
+      <div className="flex items-center justify-between border-b bg-background p-4 sm:p-6">
         <h2 className="font-semibold text-lg">Kosten bewerken</h2>
         <Button variant="ghost" size="sm" onClick={onClose}>
           <X className="h-4 w-4" />
         </Button>
       </div>
-      <div className="flex-1 space-y-4 overflow-y-auto p-4">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
         <div className="space-y-4">
           <div>
             <Label htmlFor={`${formId}-purchasePrice`}>Koopprijs</Label>
@@ -145,8 +145,8 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
       </div>
 
       {/* Action Buttons - Sticky at bottom */}
-      <div className="border-t bg-background p-4">
-        <div className="flex space-x-2">
+      <div className="border-t bg-background p-4 sm:p-6">
+        <div className="flex flex-col space-y-2 sm:flex-row sm:space-x-2 sm:space-y-0">
           <Button onClick={onClose} className="flex-1">
             Opslaan
           </Button>

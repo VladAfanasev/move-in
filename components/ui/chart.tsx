@@ -97,14 +97,40 @@ const ChartTooltip = RechartsPrimitive.Tooltip
 
 const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof RechartsPrimitive.Tooltip> &
-    React.ComponentProps<"div"> & {
-      hideLabel?: boolean
-      hideIndicator?: boolean
-      indicator?: "line" | "dot" | "dashed"
-      nameKey?: string
-      labelKey?: string
-    }
+  React.ComponentProps<"div"> & {
+    active?: boolean
+    payload?: Array<{
+      name?: string
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts value can be any type
+      value?: any
+      dataKey?: string
+      color?: string
+      type?: "none" | string
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts payload is dynamic
+      payload?: any
+    }>
+    // biome-ignore lint/suspicious/noExplicitAny: Recharts label can be any type
+    label?: any
+    // biome-ignore lint/suspicious/noExplicitAny: Recharts callback params are dynamic
+    labelFormatter?: (value: any, payload: any[]) => React.ReactNode
+    formatter?: (
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts callback params are dynamic
+      value: any,
+      name: string,
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts item is dynamic
+      item: any,
+      index: number,
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts payload is dynamic
+      payload: any,
+    ) => React.ReactNode
+    hideLabel?: boolean
+    hideIndicator?: boolean
+    indicator?: "line" | "dot" | "dashed"
+    nameKey?: string
+    labelKey?: string
+    labelClassName?: string
+    color?: string
+  }
 >(
   (
     {
@@ -245,11 +271,17 @@ const ChartLegend = RechartsPrimitive.Legend
 
 const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<RechartsPrimitive.LegendProps, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
+  React.ComponentProps<"div"> & {
+    hideIcon?: boolean
+    nameKey?: string
+    payload?: Array<{
+      value?: string
+      type?: string
+      color?: string
+      dataKey?: string
+    }>
+    verticalAlign?: "top" | "bottom"
+  }
 >(({ className, hideIcon = false, payload, verticalAlign = "bottom", nameKey }, ref) => {
   const { config } = useChart()
 

@@ -4,6 +4,7 @@ import {
   notifyUserJoined,
   notifyUserLeft,
   removeConnection,
+  shouldUseRealtimeConnection,
 } from "@/lib/sse-connections"
 import { createClient } from "@/lib/supabase/server"
 
@@ -15,8 +16,29 @@ export async function GET(
   const url = new URL(request.url)
   const userId = url.searchParams.get("userId")
 
+  console.log(`🔌 SSE connection request - Session: ${sessionId}, User: ${userId}`)
+
   if (!userId) {
+    console.error("❌ SSE request missing userId")
     return new Response("Missing userId", { status: 400 })
+  }
+
+  // Check if real-time connection is needed (2+ users)
+  const shouldConnect = await shouldUseRealtimeConnection(sessionId, userId)
+  console.log(`🤔 Should use realtime for session ${sessionId}:`, shouldConnect)
+
+  if (!shouldConnect) {
+    console.log(`📄 Returning single-user database mode for session ${sessionId}`)
+    return new Response(
+      JSON.stringify({
+        message: "Single user session - real-time disabled",
+        useDatabase: true,
+      }),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      },
+    )
   }
 
   // Verify user authentication (skip for test sessions)
@@ -60,10 +82,30 @@ export async function GET(
         })
         controller.enqueue(`data: ${onlineData}\n\n`)
 
+        // Send periodic heartbeat to maintain connection health
+        const heartbeatInterval = setInterval(() => {
+          try {
+            const heartbeat = JSON.stringify({
+              type: "heartbeat",
+              timestamp: Date.now(),
+            })
+            controller.enqueue(`data: ${heartbeat}\n\n`)
+          } catch (error) {
+            console.error("Heartbeat error:", error)
+            clearInterval(heartbeatInterval)
+          }
+        }, 120000) // Every 2 minutes (reduced from 30s)
+
         // Notify other users in the session that this user joined
         notifyUserJoined(sessionId, userId)
 
         console.log(`SSE connection established for user ${userId} in session ${sessionId}`)
+
+        // Store heartbeat interval for cleanup
+        const cleanup = () => {
+          clearInterval(heartbeatInterval)
+        }
+        return cleanup
       } catch (error) {
         console.error("Error in SSE start:", error)
         controller.error(error)
