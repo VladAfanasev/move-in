@@ -163,7 +163,7 @@ export function CostCalculationPageClient({
               {/* Top: Property Image + Info */}
               <div className="flex">
                 {/* Property Image - Mobile Responsive */}
-                <div className="relative h-20 w-24 shrink-0 bg-muted sm:h-24 sm:w-32">
+                <div className="relative h-auto w-24 shrink-0 bg-muted sm:w-32">
                   <Image
                     src={property.images?.[0] || "/placeholder-property.svg"}
                     alt={property.address}

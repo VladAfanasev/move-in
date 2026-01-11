@@ -116,12 +116,10 @@ export default async function CostCalculationPage({
     isSessionLocked = !!completedSession
   }
 
-  // const totalCosts = Number(calculation.totalCosts)
-
   return (
     <div className="flex flex-1 flex-col">
       <SiteHeader
-        title="Kosten berekenen"
+        title={`Kostenverdeling - ${property.address}`}
         backButton={
           <Link href={`/dashboard/groups/${groupId}`}>
             <Button variant="ghost" size="sm">

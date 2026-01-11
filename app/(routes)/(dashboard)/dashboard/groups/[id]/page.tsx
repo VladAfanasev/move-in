@@ -164,7 +164,7 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
   return (
     <div className="flex flex-1 flex-col">
       <SiteHeader
-        title={group.name}
+        title={`Groep: ${group.name}`}
         backButton={
           <Link href="/dashboard/groups">
             <Button variant="ghost" size="sm">

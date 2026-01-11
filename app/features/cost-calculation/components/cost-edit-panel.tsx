@@ -92,9 +92,10 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
             <Input
               id={`${formId}-renovationCosts`}
               type="number"
-              value={costs.renovationCosts}
+              value={costs.renovationCosts || ""}
+              placeholder="0"
               onChange={e =>
-                setCosts(prev => ({ ...prev, renovationCosts: Number(e.target.value) }))
+                setCosts(prev => ({ ...prev, renovationCosts: Number(e.target.value) || 0 }))
               }
               className="mt-1"
             />
@@ -105,9 +106,10 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
             <Input
               id={`${formId}-inspectionCosts`}
               type="number"
-              value={costs.inspectionCosts}
+              value={costs.inspectionCosts || ""}
+              placeholder="0"
               onChange={e =>
-                setCosts(prev => ({ ...prev, inspectionCosts: Number(e.target.value) }))
+                setCosts(prev => ({ ...prev, inspectionCosts: Number(e.target.value) || 0 }))
               }
               className="mt-1"
             />
@@ -118,8 +120,9 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
             <Input
               id={`${formId}-otherCosts`}
               type="number"
-              value={costs.otherCosts}
-              onChange={e => setCosts(prev => ({ ...prev, otherCosts: Number(e.target.value) }))}
+              value={costs.otherCosts || ""}
+              placeholder="0"
+              onChange={e => setCosts(prev => ({ ...prev, otherCosts: Number(e.target.value) || 0 }))}
               className="mt-1"
             />
           </div>
@@ -129,8 +132,9 @@ export function CostEditPanel({ property, onClose }: CostEditPanelProps) {
             <Input
               id={`${formId}-brokerFees`}
               type="number"
-              value={costs.brokerFees}
-              onChange={e => setCosts(prev => ({ ...prev, brokerFees: Number(e.target.value) }))}
+              value={costs.brokerFees || ""}
+              placeholder="0"
+              onChange={e => setCosts(prev => ({ ...prev, brokerFees: Number(e.target.value) || 0 }))}
               className="mt-1"
             />
           </div>
