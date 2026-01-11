@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 interface AddPropertyToGroupProps {
   propertyId: string
+  propertyStatus?: "available" | "in_option" | "sold" | "archived"
 }
 
 interface Group {
@@ -20,12 +21,14 @@ interface Group {
   targetLocation: string | null
 }
 
-export function AddPropertyToGroup({ propertyId }: AddPropertyToGroupProps) {
+export function AddPropertyToGroup({ propertyId, propertyStatus }: AddPropertyToGroupProps) {
   const [open, setOpen] = useState(false)
   const [groups, setGroups] = useState<Group[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user } = useAuth()
+
+  const isSold = propertyStatus === "sold"
 
   useEffect(() => {
     if (user?.id && open) {
@@ -60,7 +63,8 @@ export function AddPropertyToGroup({ propertyId }: AddPropertyToGroupProps) {
     }
   }
 
-  if (!user) return null
+  // Don't show button for sold properties or if not logged in
+  if (!user || isSold) return null
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

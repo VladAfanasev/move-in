@@ -268,6 +268,21 @@ export async function addPropertyToGroup(data: {
   notes?: string
 }) {
   try {
+    // Check if property exists and is not sold
+    const [property] = await db
+      .select({ status: properties.status })
+      .from(properties)
+      .where(eq(properties.id, data.propertyId))
+      .limit(1)
+
+    if (!property) {
+      throw new Error("Woning niet gevonden")
+    }
+
+    if (property.status === "sold") {
+      throw new Error("Verkochte woningen kunnen niet aan een groep worden toegevoegd")
+    }
+
     const [result] = await db
       .insert(groupProperties)
       .values({
@@ -282,6 +297,9 @@ export async function addPropertyToGroup(data: {
     return result
   } catch (error) {
     console.error("Error adding property to group:", error)
+    if (error instanceof Error) {
+      throw error
+    }
     throw new Error("Failed to add property to group")
   }
 }
