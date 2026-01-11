@@ -50,9 +50,9 @@ export function GroupStatusChart({ groupsByStatus }: GroupStatusChartProps) {
                 fill="#8884d8"
                 dataKey="value"
               >
-                {data.map((entry, index) => (
+                {data.map(entry => (
                   <Cell
-                    key={`cell-${index}`}
+                    key={`cell-${entry.name}`}
                     fill={COLORS[entry.name.toLowerCase().replace(" ", "_")] || COLORS.forming}
                   />
                 ))}

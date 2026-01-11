@@ -50,8 +50,8 @@ export function RecentActivity({ activities }: RecentActivityProps) {
       <CardContent>
         <ScrollArea className="h-[400px]">
           <div className="space-y-6 pr-3">
-            {activities.slice(0, 8).map((activity, index) => (
-              <div key={index} className="relative flex gap-3">
+            {activities.slice(0, 8).map((activity, activityIndex) => (
+              <div key={`${activity.createdAt}-${activity.title}`} className="relative flex gap-3">
                 {/* Time */}
                 <div className="w-12 flex-shrink-0 pt-0.5 text-right font-medium text-[11px] text-muted-foreground">
                   {formatDistanceToNow(new Date(activity.createdAt), {
@@ -74,7 +74,7 @@ export function RecentActivity({ activities }: RecentActivityProps) {
                 {/* Dot and line */}
                 <div className="relative flex flex-col items-center">
                   <div className="z-10 mt-1.5 h-2 w-2 rounded-full bg-orange-500"></div>
-                  {index < activities.slice(0, 8).length - 1 && (
+                  {activityIndex < activities.slice(0, 8).length - 1 && (
                     <div className="absolute top-3 h-full w-px bg-border"></div>
                   )}
                 </div>

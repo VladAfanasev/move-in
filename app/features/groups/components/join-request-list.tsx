@@ -1,7 +1,7 @@
 "use client"
 
 import { Check, Clock, MessageSquare, User, X } from "lucide-react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useId, useState } from "react"
 import { toast } from "sonner"
 import { getJoinRequestsAction } from "@/actions/groups/join-request"
 import {
@@ -42,6 +42,7 @@ export function JoinRequestList({ groupId, onRequestProcessed }: JoinRequestList
     userName: string
   }>({ isOpen: false, requestId: "", userName: "" })
   const [rejectionReason, setRejectionReason] = useState("")
+  const rejectionReasonId = useId()
 
   const loadRequests = useCallback(async () => {
     try {
@@ -243,9 +244,9 @@ export function JoinRequestList({ groupId, onRequestProcessed }: JoinRequestList
 
           <div className="mt-4 space-y-4">
             <div>
-              <Label htmlFor="rejection-reason">Reden (optioneel)</Label>
+              <Label htmlFor={rejectionReasonId}>Reden (optioneel)</Label>
               <Textarea
-                id="rejection-reason"
+                id={rejectionReasonId}
                 placeholder="Leg uit waarom je het verzoek afwijst..."
                 value={rejectionReason}
                 onChange={e => setRejectionReason(e.target.value)}

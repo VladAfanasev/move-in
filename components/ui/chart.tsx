@@ -101,19 +101,26 @@ const ChartTooltipContent = React.forwardRef<
     active?: boolean
     payload?: Array<{
       name?: string
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts value can be any type
       value?: any
       dataKey?: string
       color?: string
       type?: "none" | string
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts payload is dynamic
       payload?: any
     }>
+    // biome-ignore lint/suspicious/noExplicitAny: Recharts label can be any type
     label?: any
+    // biome-ignore lint/suspicious/noExplicitAny: Recharts callback params are dynamic
     labelFormatter?: (value: any, payload: any[]) => React.ReactNode
     formatter?: (
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts callback params are dynamic
       value: any,
       name: string,
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts item is dynamic
       item: any,
       index: number,
+      // biome-ignore lint/suspicious/noExplicitAny: Recharts payload is dynamic
       payload: any,
     ) => React.ReactNode
     hideLabel?: boolean

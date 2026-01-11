@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { io, type Socket } from "socket.io-client"
-import { toast } from "sonner"
+import type { Socket } from "socket.io-client"
 
 interface SessionMember {
   userId: string
@@ -23,9 +22,9 @@ interface UseCalculationSessionProps {
 export function useCalculationSession({
   sessionId,
   userId,
-  userName,
-  groupId,
-  propertyId,
+  userName: _userName,
+  groupId: _groupId,
+  propertyId: _propertyId,
 }: UseCalculationSessionProps) {
   const [socket] = useState<Socket | null>(null)
   const [isConnected, setIsConnected] = useState(false)

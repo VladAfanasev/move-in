@@ -198,7 +198,14 @@ export function CostCalculationForm({
       // If using external state, don't manage loading internally
       setInternalLoading(false)
     }
-  }, [_members, currentUser.id, externalSessionMembers]) // Remove circular dependencies
+  }, [
+    _members,
+    currentUser.id,
+    externalSessionMembers,
+    onlineMembers,
+    setSessionMembers,
+    sessionMembers.length,
+  ])
 
   // Update online status when online members change (only when using internal state)
   useEffect(() => {
@@ -210,7 +217,7 @@ export function CostCalculationForm({
         })),
       )
     }
-  }, [onlineMembers, externalSessionMembers, sessionMembers.length]) // Add guard to prevent unnecessary updates
+  }, [onlineMembers, externalSessionMembers, sessionMembers.length, setSessionMembers])
 
   // Calculate total costs (simplified - could be passed as prop)
   const totalCosts = Number(property.price) + 2500 + Number(property.price) * 0.02 + 750
@@ -225,7 +232,6 @@ export function CostCalculationForm({
       return sum + member.percentage
     }, 0)
 
-  const yourAmount = Math.round((totalCosts * yourPercentage) / 100)
   const allConfirmed =
     externalAllConfirmed ??
     sessionMembers.every(member =>

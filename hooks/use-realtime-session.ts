@@ -329,7 +329,7 @@ export function useRealtimeSession({
       console.log(`Cleaning up connection for session ${sessionId}, user ${userId}`)
       disconnect()
     }
-  }, [sessionId, userId]) // Only re-run when sessionId or userId changes
+  }, [sessionId, userId, checkSessionMode, connectToSSE, disconnect])
 
   // Update session status via API
   const updateSessionStatus = useCallback(

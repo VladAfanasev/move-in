@@ -2,7 +2,7 @@
 
 import { Users } from "lucide-react"
 import { useRouter } from "next/navigation"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 import { createJoinRequestAction } from "@/actions/groups/join-request"
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,7 @@ export function JoinRequestForm({ groupId, groupName }: JoinRequestFormProps) {
   const [message, setMessage] = useState("")
   const [submitted, setSubmitted] = useState(false)
   const router = useRouter()
+  const messageId = useId()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -87,9 +88,9 @@ export function JoinRequestForm({ groupId, groupName }: JoinRequestFormProps) {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="message">Bericht (optioneel)</Label>
+            <Label htmlFor={messageId}>Bericht (optioneel)</Label>
             <Textarea
-              id="message"
+              id={messageId}
               placeholder="Vertel waarom je lid wilt worden van deze groep..."
               value={message}
               onChange={e => setMessage(e.target.value)}
