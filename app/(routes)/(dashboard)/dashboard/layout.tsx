@@ -1,16 +1,10 @@
 import { redirect } from "next/navigation"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { createClient } from "@/lib/supabase/server"
-
-// Force dynamic rendering to prevent build-time prerendering
-export const dynamic = "force-dynamic"
+import { requireUser } from "@/lib/supabase/cached"
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const user = await requireUser()
 
   if (!user) {
     redirect("/")

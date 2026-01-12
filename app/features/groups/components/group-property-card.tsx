@@ -1,22 +1,46 @@
 "use client"
 
 import clsx from "clsx"
-import { Bath, Bed, Calculator, Clock, FileText, MapPin, MessageSquare, User } from "lucide-react"
+import {
+  Bath,
+  Bed,
+  Calculator,
+  Clock,
+  FileText,
+  MapPin,
+  MessageSquare,
+  Trash2,
+  User,
+} from "lucide-react"
 import Image from "next/image"
+import { useRouter } from "next/navigation"
+import { useState, useTransition } from "react"
+import { removePropertyFromGroupAction } from "@/actions/properties/remove-from-group"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import type { Property } from "@/lib/types"
+import type { CachedProperty } from "@/lib/types"
 
 interface GroupPropertyCardProps {
-  property: Property
+  property: CachedProperty
   notes?: string | null
   rating?: number | null
-  addedAt: Date
+  addedAt: Date | string
   addedByName?: string | null
   onCalculateCosts?: (propertyId: string) => void
   hasCompletedNegotiation?: boolean
   groupId?: string
+  onRemove?: () => void
 }
 
 export function GroupPropertyCard({
@@ -27,7 +51,26 @@ export function GroupPropertyCard({
   onCalculateCosts,
   hasCompletedNegotiation = false,
   groupId,
+  onRemove,
 }: GroupPropertyCardProps) {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [showRemoveDialog, setShowRemoveDialog] = useState(false)
+
+  const handleRemove = () => {
+    if (!groupId) return
+
+    startTransition(async () => {
+      try {
+        await removePropertyFromGroupAction(groupId, property.id)
+        onRemove?.()
+        router.refresh()
+      } catch (error) {
+        console.error("Failed to remove property:", error)
+      }
+    })
+  }
+
   const formatPrice = (price: string) => {
     const numPrice = parseFloat(price)
     return new Intl.NumberFormat("nl-NL", {
@@ -68,12 +111,13 @@ export function GroupPropertyCard({
     }
   }
 
-  const formatDate = (date: Date) => {
+  const formatDate = (date: Date | string) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date
     return new Intl.DateTimeFormat("nl-NL", {
       day: "numeric",
       month: "short",
       year: "numeric",
-    }).format(date)
+    }).format(dateObj)
   }
 
   const primaryImage = property.images?.[0] || "/placeholder-property.svg"
@@ -99,6 +143,18 @@ export function GroupPropertyCard({
               {statusConfig.text}
             </Badge>
           </div>
+        )}
+
+        {/* Actions Menu */}
+        {groupId && (
+          <Button
+            variant="default"
+            size={"icon"}
+            className="absolute top-2 right-2 bg-secondary/40"
+            onClick={() => setShowRemoveDialog(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
         )}
 
         {/* Price Overlay */}
@@ -206,6 +262,29 @@ export function GroupPropertyCard({
           </Button>
         )}
       </CardContent>
+
+      {/* Remove Confirmation Dialog */}
+      <AlertDialog open={showRemoveDialog} onOpenChange={setShowRemoveDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Woning verwijderen</AlertDialogTitle>
+            <AlertDialogDescription>
+              Weet je zeker dat je "{property.address}" wilt verwijderen uit deze groep? Dit kan
+              niet ongedaan worden gemaakt.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemove}
+              disabled={isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isPending ? "Verwijderen..." : "Verwijderen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   )
 }

@@ -1,5 +1,6 @@
 import type { User } from "@supabase/supabase-js"
 import { and, desc, eq, sql } from "drizzle-orm"
+import { unstable_cache } from "next/cache"
 import { db } from "@/db/client"
 import {
   costCalculations,
@@ -530,39 +531,41 @@ export async function checkAndCompleteSession(
   return { completed: false, session: null }
 }
 
-// Get all completed negotiations for properties in a group
-export async function getCompletedNegotiationsForGroup(groupId: string): Promise<Set<string>> {
-  const completedPropertyIds = new Set<string>()
+// Get all completed negotiations for properties in a group (cached across navigations)
+export const getCompletedNegotiationsForGroup = (groupId: string): Promise<Set<string>> =>
+  unstable_cache(
+    async () => {
+      const completedPropertyIds = new Set<string>()
 
-  // Get all cost calculations for this group
-  const calculations = await db
-    .select({
-      id: costCalculations.id,
-      propertyId: costCalculations.propertyId,
-    })
-    .from(costCalculations)
-    .where(eq(costCalculations.groupId, groupId))
+      const calculations = await db
+        .select({
+          id: costCalculations.id,
+          propertyId: costCalculations.propertyId,
+        })
+        .from(costCalculations)
+        .where(eq(costCalculations.groupId, groupId))
 
-  if (calculations.length === 0) {
-    return completedPropertyIds
-  }
+      if (calculations.length === 0) {
+        return completedPropertyIds
+      }
 
-  // Get all completed negotiation sessions for these calculations
-  const completedSessions = await db
-    .select({
-      calculationId: negotiationSessions.calculationId,
-    })
-    .from(negotiationSessions)
-    .where(eq(negotiationSessions.status, "completed"))
+      const completedSessions = await db
+        .select({
+          calculationId: negotiationSessions.calculationId,
+        })
+        .from(negotiationSessions)
+        .where(eq(negotiationSessions.status, "completed"))
 
-  const completedCalculationIds = new Set(completedSessions.map(s => s.calculationId))
+      const completedCalculationIds = new Set(completedSessions.map(s => s.calculationId))
 
-  // Map back to property IDs
-  for (const calc of calculations) {
-    if (completedCalculationIds.has(calc.id)) {
-      completedPropertyIds.add(calc.propertyId)
-    }
-  }
+      for (const calc of calculations) {
+        if (completedCalculationIds.has(calc.id)) {
+          completedPropertyIds.add(calc.propertyId)
+        }
+      }
 
-  return completedPropertyIds
-}
+      return completedPropertyIds
+    },
+    [`completed-negotiations-${groupId}`],
+    { revalidate: 60, tags: ["negotiations", `group-${groupId}`] },
+  )()

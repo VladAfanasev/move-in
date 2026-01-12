@@ -3,7 +3,7 @@
 import { Euro, MapPin, Users } from "lucide-react"
 import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 interface Group {
   id: string
@@ -12,7 +12,7 @@ interface Group {
   targetBudget: string | null
   targetLocation: string | null
   maxMembers: number | null
-  createdAt: Date
+  createdAt: Date | string
   memberCount: number
   userRole: "owner" | "admin" | "member" | null
   userStatus: "pending" | "active" | "left" | "removed" | null
@@ -45,15 +45,12 @@ export function GroupsList({ groups }: GroupsListProps) {
                 <div className="flex-1">
                   <CardTitle className="text-lg">{group.name}</CardTitle>
                 </div>
-                {group.userRole && (
+                {group.userRole === "owner" && (
                   <Badge variant="outline" className="ml-2">
-                    {group.userRole}
+                    Eigenaar
                   </Badge>
                 )}
               </div>
-              {group.description && (
-                <CardDescription className="line-clamp-2">{group.description}</CardDescription>
-              )}
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex items-center text-muted-foreground text-sm">

@@ -1,27 +1,20 @@
 import { redirect } from "next/navigation"
 import { SiteHeader } from "@/components/site-header"
 import { getDashboardStats } from "@/lib/dashboard-data"
-import { createClient } from "@/lib/supabase/server"
+import { requireUser } from "@/lib/supabase/cached"
 import { ActionCards } from "./components/action-cards"
 import { DashboardStats } from "./components/dashboard-stats"
 import { QuickActions } from "./components/quick-actions"
 import { RecentActivity } from "./components/recent-activity"
 
-// Force dynamic rendering to prevent build-time prerendering
-export const dynamic = "force-dynamic"
-
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
+  const user = await requireUser()
 
-  if (error || !user) {
+  if (!user) {
     redirect("/auth/login")
   }
 
-  // Fetch dashboard data
+  // Fetch dashboard data (cached for 30s)
   const dashboardStats = await getDashboardStats(user.id)
 
   return (

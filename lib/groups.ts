@@ -1,4 +1,5 @@
 import { and, count, desc, eq, inArray } from "drizzle-orm"
+import { unstable_cache } from "next/cache"
 import { db } from "@/db/client"
 import {
   buyingGroups,
@@ -10,135 +11,161 @@ import {
 } from "@/db/schema"
 import type { GroupWithMemberCount } from "@/lib/types"
 
-export async function getUserGroups(userId: string) {
-  try {
-    // Get groups the user is a member of with their role/status
-    const userMemberships = await db
-      .select({
-        groupId: groupMembers.groupId,
-        role: groupMembers.role,
-        status: groupMembers.status,
-      })
-      .from(groupMembers)
-      .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "active")))
+// Cache duration in seconds (60 = 1 minute)
+const CACHE_DURATION = 60
 
-    if (userMemberships.length === 0) {
-      return []
-    }
+// Cached query functions - persist across navigations
+export const getUserGroups = (userId: string) =>
+  unstable_cache(
+    async () => {
+      try {
+        const userMemberships = await db
+          .select({
+            groupId: groupMembers.groupId,
+            role: groupMembers.role,
+            status: groupMembers.status,
+          })
+          .from(groupMembers)
+          .where(and(eq(groupMembers.userId, userId), eq(groupMembers.status, "active")))
 
-    // Get group details with member counts
-    const result = await db
-      .select({
-        id: buyingGroups.id,
-        name: buyingGroups.name,
-        description: buyingGroups.description,
-        targetBudget: buyingGroups.targetBudget,
-        targetLocation: buyingGroups.targetLocation,
-        maxMembers: buyingGroups.maxMembers,
-        createdAt: buyingGroups.createdAt,
-        memberCount: count(groupMembers.userId),
-      })
-      .from(buyingGroups)
-      .leftJoin(
-        groupMembers,
-        and(eq(buyingGroups.id, groupMembers.groupId), eq(groupMembers.status, "active")),
-      )
-      .where(
-        inArray(
-          buyingGroups.id,
-          userMemberships.map((m: { groupId: string; role: string; status: string }) => m.groupId),
-        ),
-      )
-      .groupBy(
-        buyingGroups.id,
-        buyingGroups.name,
-        buyingGroups.description,
-        buyingGroups.targetBudget,
-        buyingGroups.targetLocation,
-        buyingGroups.maxMembers,
-        buyingGroups.createdAt,
-      )
-      .orderBy(desc(buyingGroups.createdAt))
+        if (userMemberships.length === 0) {
+          return []
+        }
 
-    // Merge user membership data with group data
-    return result.map((group: GroupWithMemberCount) => {
-      const membership = userMemberships.find(
-        (m: { groupId: string; role: string; status: string }) => m.groupId === group.id,
-      )
-      return {
-        ...group,
-        userRole: membership?.role || null,
-        userStatus: membership?.status || null,
+        const result = await db
+          .select({
+            id: buyingGroups.id,
+            name: buyingGroups.name,
+            description: buyingGroups.description,
+            targetBudget: buyingGroups.targetBudget,
+            targetLocation: buyingGroups.targetLocation,
+            maxMembers: buyingGroups.maxMembers,
+            createdAt: buyingGroups.createdAt,
+            memberCount: count(groupMembers.userId),
+          })
+          .from(buyingGroups)
+          .leftJoin(
+            groupMembers,
+            and(eq(buyingGroups.id, groupMembers.groupId), eq(groupMembers.status, "active")),
+          )
+          .where(
+            inArray(
+              buyingGroups.id,
+              userMemberships.map(
+                (m: { groupId: string; role: string; status: string }) => m.groupId,
+              ),
+            ),
+          )
+          .groupBy(
+            buyingGroups.id,
+            buyingGroups.name,
+            buyingGroups.description,
+            buyingGroups.targetBudget,
+            buyingGroups.targetLocation,
+            buyingGroups.maxMembers,
+            buyingGroups.createdAt,
+          )
+          .orderBy(desc(buyingGroups.createdAt))
+
+        return result.map((group: GroupWithMemberCount) => {
+          const membership = userMemberships.find(
+            (m: { groupId: string; role: string; status: string }) => m.groupId === group.id,
+          )
+          return {
+            ...group,
+            userRole: membership?.role || null,
+            userStatus: membership?.status || null,
+          }
+        })
+      } catch (error) {
+        console.error("Error fetching user groups:", error)
+        throw new Error("Failed to fetch user groups")
       }
-    })
-  } catch (error) {
-    console.error("Error fetching user groups:", error)
-    throw new Error("Failed to fetch user groups")
-  }
-}
+    },
+    [`user-groups-${userId}`],
+    { revalidate: CACHE_DURATION, tags: ["groups", `user-${userId}`] },
+  )()
 
-export async function getGroupById(groupId: string) {
-  try {
-    const result = await db.select().from(buyingGroups).where(eq(buyingGroups.id, groupId)).limit(1)
+export const getGroupById = (groupId: string) =>
+  unstable_cache(
+    async () => {
+      try {
+        const result = await db
+          .select()
+          .from(buyingGroups)
+          .where(eq(buyingGroups.id, groupId))
+          .limit(1)
+        return result[0] || null
+      } catch (error) {
+        console.error("Error fetching group:", error)
+        throw new Error("Failed to fetch group")
+      }
+    },
+    [`group-${groupId}`],
+    { revalidate: CACHE_DURATION, tags: ["groups", `group-${groupId}`] },
+  )()
 
-    return result[0] || null
-  } catch (error) {
-    console.error("Error fetching group:", error)
-    throw new Error("Failed to fetch group")
-  }
-}
+export const getGroupMembers = (groupId: string) =>
+  unstable_cache(
+    async () => {
+      try {
+        const result = await db
+          .select({
+            userId: groupMembers.userId,
+            role: groupMembers.role,
+            status: groupMembers.status,
+            contributionAmount: groupMembers.contributionAmount,
+            ownershipPercentage: groupMembers.ownershipPercentage,
+            joinedAt: groupMembers.joinedAt,
+            fullName: profiles.fullName,
+            email: profiles.email,
+            avatarUrl: profiles.avatarUrl,
+          })
+          .from(groupMembers)
+          .leftJoin(profiles, eq(groupMembers.userId, profiles.id))
+          .where(eq(groupMembers.groupId, groupId))
+          .orderBy(groupMembers.joinedAt)
 
-export async function getGroupMembers(groupId: string) {
-  try {
-    const result = await db
-      .select({
-        userId: groupMembers.userId,
-        role: groupMembers.role,
-        status: groupMembers.status,
-        contributionAmount: groupMembers.contributionAmount,
-        ownershipPercentage: groupMembers.ownershipPercentage,
-        joinedAt: groupMembers.joinedAt,
-        fullName: profiles.fullName,
-        email: profiles.email,
-        avatarUrl: profiles.avatarUrl,
-      })
-      .from(groupMembers)
-      .leftJoin(profiles, eq(groupMembers.userId, profiles.id))
-      .where(eq(groupMembers.groupId, groupId))
-      .orderBy(groupMembers.joinedAt)
+        return result
+      } catch (error) {
+        console.error("Error fetching group members:", error)
+        throw new Error("Failed to fetch group members")
+      }
+    },
+    [`group-members-${groupId}`],
+    { revalidate: CACHE_DURATION, tags: ["groups", `group-${groupId}`, "members"] },
+  )()
 
-    return result
-  } catch (error) {
-    console.error("Error fetching group members:", error)
-    throw new Error("Failed to fetch group members")
-  }
-}
+export const getGroupInvitations = (groupId: string) =>
+  unstable_cache(
+    async () => {
+      try {
+        const result = await db
+          .select({
+            id: groupInvitations.id,
+            email: groupInvitations.email,
+            role: groupInvitations.role,
+            status: groupInvitations.status,
+            token: groupInvitations.token,
+            expiresAt: groupInvitations.expiresAt,
+            createdAt: groupInvitations.createdAt,
+            invitedByName: profiles.fullName,
+            invitedByEmail: profiles.email,
+          })
+          .from(groupInvitations)
+          .leftJoin(profiles, eq(groupInvitations.invitedBy, profiles.id))
+          .where(eq(groupInvitations.groupId, groupId))
+          .orderBy(groupInvitations.createdAt)
 
-export async function getGroupInvitations(groupId: string) {
-  try {
-    const result = await db
-      .select({
-        id: groupInvitations.id,
-        email: groupInvitations.email,
-        role: groupInvitations.role,
-        status: groupInvitations.status,
-        token: groupInvitations.token,
-        expiresAt: groupInvitations.expiresAt,
-        createdAt: groupInvitations.createdAt,
-        invitedByName: profiles.fullName,
-        invitedByEmail: profiles.email,
-      })
-      .from(groupInvitations)
-      .leftJoin(profiles, eq(groupInvitations.invitedBy, profiles.id))
-      .where(eq(groupInvitations.groupId, groupId))
-      .orderBy(groupInvitations.createdAt)
-
-    return result
-  } catch (error) {
-    console.error("Error fetching group invitations:", error)
-    throw new Error("Failed to fetch group invitations")
-  }
-}
+        return result
+      } catch (error) {
+        console.error("Error fetching group invitations:", error)
+        throw new Error("Failed to fetch group invitations")
+      }
+    },
+    [`group-invitations-${groupId}`],
+    { revalidate: CACHE_DURATION, tags: ["groups", `group-${groupId}`, "invitations"] },
+  )()
 
 export async function createGroup(data: {
   name: string
@@ -161,7 +188,6 @@ export async function createGroup(data: {
       })
       .returning()
 
-    // Add creator as owner
     await db.insert(groupMembers).values({
       groupId: newGroup.id,
       userId: data.createdBy,
@@ -248,7 +274,6 @@ export async function updateGroupDetails(
 
 export async function deleteGroup(groupId: string) {
   try {
-    // Delete the group - cascade will handle related records
     const [deletedGroup] = await db
       .delete(buyingGroups)
       .where(eq(buyingGroups.id, groupId))
@@ -268,7 +293,6 @@ export async function addPropertyToGroup(data: {
   notes?: string
 }) {
   try {
-    // Check if property exists and is not sold
     const [property] = await db
       .select({ status: properties.status })
       .from(properties)
@@ -304,73 +328,95 @@ export async function addPropertyToGroup(data: {
   }
 }
 
-export async function getGroupProperties(groupId: string) {
+export async function removePropertyFromGroup(groupId: string, propertyId: string) {
   try {
-    const result = await db
-      .select({
-        propertyId: groupProperties.propertyId,
-        notes: groupProperties.notes,
-        rating: groupProperties.rating,
-        status: groupProperties.status,
-        addedAt: groupProperties.addedAt,
-        addedBy: groupProperties.addedBy,
-      })
-      .from(groupProperties)
-      .where(eq(groupProperties.groupId, groupId))
-      .orderBy(desc(groupProperties.addedAt))
+    const [result] = await db
+      .delete(groupProperties)
+      .where(and(eq(groupProperties.groupId, groupId), eq(groupProperties.propertyId, propertyId)))
+      .returning()
 
     return result
   } catch (error) {
-    console.error("Error fetching group properties:", error)
-    throw new Error("Failed to fetch group properties")
+    console.error("Error removing property from group:", error)
+    throw new Error("Failed to remove property from group")
   }
 }
 
-export async function getGroupPropertiesWithDetails(groupId: string) {
-  try {
-    const result = await db
-      .select({
-        // Group property info
-        notes: groupProperties.notes,
-        rating: groupProperties.rating,
-        groupPropertyStatus: groupProperties.status,
-        addedAt: groupProperties.addedAt,
-        addedBy: groupProperties.addedBy,
-        addedByName: profiles.fullName,
-        // Full property details
-        property: {
-          id: properties.id,
-          description: properties.description,
-          address: properties.address,
-          city: properties.city,
-          state: properties.state,
-          zipCode: properties.zipCode,
-          country: properties.country,
-          price: properties.price,
-          bedrooms: properties.bedrooms,
-          bathrooms: properties.bathrooms,
-          squareFeet: properties.squareFeet,
-          lotSize: properties.lotSize,
-          yearBuilt: properties.yearBuilt,
-          propertyType: properties.propertyType,
-          status: properties.status,
-          images: properties.images,
-          features: properties.features,
-          metadata: properties.metadata,
-          createdAt: properties.createdAt,
-          updatedAt: properties.updatedAt,
-          listedBy: properties.listedBy,
-        },
-      })
-      .from(groupProperties)
-      .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
-      .leftJoin(profiles, eq(groupProperties.addedBy, profiles.id))
-      .where(eq(groupProperties.groupId, groupId))
-      .orderBy(desc(groupProperties.addedAt))
+export const getGroupProperties = (groupId: string) =>
+  unstable_cache(
+    async () => {
+      try {
+        const result = await db
+          .select({
+            propertyId: groupProperties.propertyId,
+            notes: groupProperties.notes,
+            rating: groupProperties.rating,
+            status: groupProperties.status,
+            addedAt: groupProperties.addedAt,
+            addedBy: groupProperties.addedBy,
+          })
+          .from(groupProperties)
+          .where(eq(groupProperties.groupId, groupId))
+          .orderBy(desc(groupProperties.addedAt))
 
-    return result
-  } catch (error) {
-    console.error("Error fetching group properties with details:", error)
-    throw new Error("Failed to fetch group properties with details")
-  }
-}
+        return result
+      } catch (error) {
+        console.error("Error fetching group properties:", error)
+        throw new Error("Failed to fetch group properties")
+      }
+    },
+    [`group-properties-${groupId}`],
+    { revalidate: CACHE_DURATION, tags: ["groups", `group-${groupId}`, "properties"] },
+  )()
+
+export const getGroupPropertiesWithDetails = (groupId: string) =>
+  unstable_cache(
+    async () => {
+      try {
+        const result = await db
+          .select({
+            notes: groupProperties.notes,
+            rating: groupProperties.rating,
+            groupPropertyStatus: groupProperties.status,
+            addedAt: groupProperties.addedAt,
+            addedBy: groupProperties.addedBy,
+            addedByName: profiles.fullName,
+            property: {
+              id: properties.id,
+              description: properties.description,
+              address: properties.address,
+              city: properties.city,
+              state: properties.state,
+              zipCode: properties.zipCode,
+              country: properties.country,
+              price: properties.price,
+              bedrooms: properties.bedrooms,
+              bathrooms: properties.bathrooms,
+              squareFeet: properties.squareFeet,
+              lotSize: properties.lotSize,
+              yearBuilt: properties.yearBuilt,
+              propertyType: properties.propertyType,
+              status: properties.status,
+              images: properties.images,
+              features: properties.features,
+              metadata: properties.metadata,
+              createdAt: properties.createdAt,
+              updatedAt: properties.updatedAt,
+              listedBy: properties.listedBy,
+            },
+          })
+          .from(groupProperties)
+          .innerJoin(properties, eq(groupProperties.propertyId, properties.id))
+          .leftJoin(profiles, eq(groupProperties.addedBy, profiles.id))
+          .where(eq(groupProperties.groupId, groupId))
+          .orderBy(desc(groupProperties.addedAt))
+
+        return result
+      } catch (error) {
+        console.error("Error fetching group properties with details:", error)
+        throw new Error("Failed to fetch group properties with details")
+      }
+    },
+    [`group-properties-details-${groupId}`],
+    { revalidate: CACHE_DURATION, tags: ["groups", `group-${groupId}`, "properties"] },
+  )()

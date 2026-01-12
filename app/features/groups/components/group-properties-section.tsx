@@ -6,36 +6,16 @@ import { useRouter } from "next/navigation"
 import { GroupPropertyCard } from "@/app/features/groups/components/group-property-card"
 import { Button } from "@/components/ui/button"
 
+import type { CachedProperty } from "@/lib/types"
+
 interface GroupProperty {
   notes: string | null
   rating: number | null
   groupPropertyStatus: string | null
-  addedAt: Date
+  addedAt: Date | string
   addedBy: string
   addedByName: string | null
-  property: {
-    id: string
-    description: string | null
-    address: string
-    city: string
-    state: string
-    zipCode: string
-    country: string
-    price: string
-    bedrooms: number | null
-    bathrooms: string | null
-    squareFeet: number | null
-    lotSize: string | null
-    yearBuilt: number | null
-    propertyType: "house" | "apartment"
-    status: "available" | "in_option" | "sold" | "archived"
-    images: string[] | null
-    features: string[] | null
-    metadata: unknown
-    createdAt: Date
-    updatedAt: Date
-    listedBy: string
-  }
+  property: CachedProperty
 }
 
 interface Member {
@@ -47,7 +27,7 @@ interface Member {
   status: "pending" | "active" | "left" | "removed"
   contributionAmount: string | null
   ownershipPercentage: string | null
-  joinedAt: Date
+  joinedAt: Date | string
 }
 
 interface GroupPropertiesSectionProps {
