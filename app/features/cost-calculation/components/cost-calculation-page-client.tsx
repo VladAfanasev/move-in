@@ -83,7 +83,9 @@ export function CostCalculationPageClient({
   }
 
   const getInitialStatus = (): "adjusting" | "confirmed" => {
-    if (initialSession) {
+    // Only honor "confirmed" status if the session is actually locked
+    // This allows users to continue adjusting until all members confirm
+    if (initialSession && isSessionLocked) {
       const participant = initialSession.participants.find(p => p.userId === currentUser.id)
       const status = participant?.status
       if (status === "locked" || status === "confirmed") return "confirmed"
