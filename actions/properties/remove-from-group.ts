@@ -1,11 +1,10 @@
 "use server"
 
 import { revalidatePath, revalidateTag } from "next/cache"
-import { ensureUserProfile } from "@/lib/auth"
-import { addPropertyToGroup } from "@/lib/groups"
+import { removePropertyFromGroup } from "@/lib/groups"
 import { createClient } from "@/lib/supabase/server"
 
-export async function addPropertyToGroupAction(formData: FormData) {
+export async function removePropertyFromGroupAction(groupId: string, propertyId: string) {
   const supabase = await createClient()
   const {
     data: { user },
@@ -16,22 +15,12 @@ export async function addPropertyToGroupAction(formData: FormData) {
     throw new Error("Unauthorized")
   }
 
-  // Ensure user profile exists in the database
-  await ensureUserProfile(user.id, user.email || "")
-
-  const groupId = formData.get("groupId") as string
-  const propertyId = formData.get("propertyId") as string
-
   if (!(groupId && propertyId)) {
     throw new Error("Group ID and Property ID are required")
   }
 
   try {
-    await addPropertyToGroup({
-      groupId,
-      propertyId,
-      addedBy: user.id,
-    })
+    await removePropertyFromGroup(groupId, propertyId)
 
     revalidateTag("dashboard")
     revalidateTag("properties")
@@ -41,10 +30,10 @@ export async function addPropertyToGroupAction(formData: FormData) {
 
     return { success: true }
   } catch (error) {
-    console.error("Error adding property to group:", error)
+    console.error("Error removing property from group:", error)
     if (error instanceof Error) {
       throw error
     }
-    throw new Error("Failed to add property to group")
+    throw new Error("Failed to remove property from group")
   }
 }

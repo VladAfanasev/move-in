@@ -1,6 +1,7 @@
 "use server"
 
 import { and, asc, eq, ne } from "drizzle-orm"
+import { revalidateTag } from "next/cache"
 import { db } from "@/db/client"
 import { buyingGroups, groupMembers } from "@/db/schema"
 import { createClient } from "@/lib/supabase/server"
@@ -70,6 +71,11 @@ export async function leaveGroupAction(groupId: string) {
           .delete(groupMembers)
           .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
 
+        revalidateTag("dashboard")
+        revalidateTag("groups")
+        revalidateTag(`group-${groupId}`)
+        revalidateTag("members")
+
         return {
           success: true,
           message:
@@ -92,6 +98,11 @@ export async function leaveGroupAction(groupId: string) {
     await db
       .delete(groupMembers)
       .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)))
+
+    revalidateTag("dashboard")
+    revalidateTag("groups")
+    revalidateTag(`group-${groupId}`)
+    revalidateTag("members")
 
     return {
       success: true,

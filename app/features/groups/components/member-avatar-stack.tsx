@@ -57,7 +57,7 @@ export function MemberAvatarStack({
   // Check if user can view requests (owner/admin)
   const canViewRequests = (currentUserRole === "owner" || currentUserRole === "admin") && groupId
 
-  // Load pending requests and count
+  // Load pending requests and count - only on mount
   const loadJoinRequests = useCallback(async () => {
     if (!(canViewRequests && groupId)) return
 
@@ -76,18 +76,12 @@ export function MemberAvatarStack({
     }
   }, [canViewRequests, groupId])
 
+  // Only load once on mount - removed duplicate useEffect
   useEffect(() => {
     if (canViewRequests) {
       loadJoinRequests()
     }
   }, [loadJoinRequests, canViewRequests])
-
-  // Refresh data when member updates occur
-  useEffect(() => {
-    if (canViewRequests && onMemberUpdate) {
-      loadJoinRequests()
-    }
-  }, [loadJoinRequests, onMemberUpdate, canViewRequests])
 
   // Filter to only show active members
   const activeMembers = members.filter(member => member.status === "active")

@@ -1,6 +1,6 @@
 "use server"
 
-import { revalidatePath } from "next/cache"
+import { revalidatePath, revalidateTag } from "next/cache"
 import { redirect } from "next/navigation"
 import { ensureUserProfile } from "@/lib/auth"
 import {
@@ -38,6 +38,9 @@ export async function createGroupAction(formData: FormData) {
 
   try {
     const group = await createGroup(data)
+    revalidateTag("dashboard")
+    revalidateTag("groups")
+    revalidateTag(`user-${user.id}`)
     revalidatePath("/dashboard/groups")
     redirect(`/dashboard/groups/${group.id}`)
   } catch (error) {
@@ -73,6 +76,10 @@ export async function updateMemberStatusAction(
 
   try {
     await updateMemberStatus(groupId, userId, status)
+    revalidateTag("dashboard")
+    revalidateTag("groups")
+    revalidateTag(`group-${groupId}`)
+    revalidateTag("members")
     revalidatePath(`/dashboard/groups/${groupId}`)
     revalidatePath("/dashboard/groups")
     return { success: true }
@@ -109,6 +116,9 @@ export async function updateGroupDetailsAction(
     }
 
     const updatedGroup = await updateGroupDetails(groupId, data)
+    revalidateTag("dashboard")
+    revalidateTag("groups")
+    revalidateTag(`group-${groupId}`)
     revalidatePath(`/dashboard/groups/${groupId}`)
     revalidatePath("/dashboard/groups")
     return { success: true, group: updatedGroup }
@@ -139,6 +149,9 @@ export async function deleteGroupAction(groupId: string) {
     }
 
     await deleteGroup(groupId)
+    revalidateTag("dashboard")
+    revalidateTag("groups")
+    revalidateTag(`group-${groupId}`)
     revalidatePath("/dashboard/groups")
     redirect("/dashboard/groups")
   } catch (error) {

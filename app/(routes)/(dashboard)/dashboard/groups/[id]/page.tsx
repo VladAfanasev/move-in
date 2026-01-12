@@ -2,6 +2,7 @@ import { ArrowLeft, Users } from "lucide-react"
 import { revalidatePath } from "next/cache"
 import Link from "next/link"
 import { notFound, redirect } from "next/navigation"
+import { Suspense } from "react"
 import { updateGroupDetailsAction } from "@/actions/groups/management"
 import { EditableText } from "@/app/features/groups/components/editable-text"
 import { GroupActionsMenu } from "@/app/features/groups/components/group-actions-menu"
@@ -12,11 +13,61 @@ import { NoAccessGroupView } from "@/app/features/groups/components/no-access-gr
 import { PendingGroupView } from "@/app/features/groups/components/pending-group-view"
 import { SiteHeader } from "@/components/site-header"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { createClient } from "@/lib/supabase/server"
 import type { GroupMemberWithProfile } from "@/lib/types"
 
 // Force dynamic rendering to prevent build-time prerendering
 export const dynamic = "force-dynamic"
+
+function PropertiesSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-6 w-48" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="overflow-hidden rounded-lg border bg-card">
+            <Skeleton className="aspect-[16/9] w-full sm:aspect-[3/2]" />
+            <div className="p-4">
+              <Skeleton className="mb-2 h-5 w-3/4" />
+              <Skeleton className="mb-3 h-4 w-1/2" />
+              <Skeleton className="mb-3 h-4 w-32" />
+              <Skeleton className="h-9 w-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// Async component for properties - streamed in via Suspense
+async function GroupPropertiesContent({
+  groupId,
+  members,
+}: {
+  groupId: string
+  members: GroupMemberWithProfile[]
+}) {
+  const { getGroupPropertiesWithDetails } = await import("@/lib/groups")
+  const { getCompletedNegotiationsForGroup } = await import("@/lib/cost-calculations")
+
+  const [groupProperties, completedNegotiations] = await Promise.all([
+    getGroupPropertiesWithDetails(groupId),
+    getCompletedNegotiationsForGroup(groupId),
+  ])
+
+  return (
+    <GroupPropertiesSection
+      groupProperties={groupProperties}
+      members={members}
+      groupId={groupId}
+      initialCompletedNegotiations={Array.from(completedNegotiations)}
+    />
+  )
+}
 
 interface GroupDetailPageProps {
   params: Promise<{
@@ -42,21 +93,13 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
   }
 
   // Dynamic imports to avoid build-time database connection
-  const { getGroupById, getGroupMembers, getGroupPropertiesWithDetails } = await import(
-    "@/lib/groups"
-  )
+  const { getGroupById, getGroupMembers } = await import("@/lib/groups")
   const { db } = await import("@/db/client")
   const { groupJoinRequests } = await import("@/db/schema")
   const { and, eq } = await import("drizzle-orm")
 
-  const { getCompletedNegotiationsForGroup } = await import("@/lib/cost-calculations")
-
-  const [group, members, groupProperties, completedNegotiations] = await Promise.all([
-    getGroupById(id),
-    getGroupMembers(id),
-    getGroupPropertiesWithDetails(id),
-    getCompletedNegotiationsForGroup(id),
-  ])
+  // Fetch only group + members first (fast) - properties will stream in via Suspense
+  const [group, members] = await Promise.all([getGroupById(id), getGroupMembers(id)])
 
   if (!group) {
     notFound()
@@ -233,12 +276,9 @@ const GroupDetailPage = async ({ params, searchParams }: GroupDetailPageProps) =
         </div>
 
         <div className="space-y-6">
-          <GroupPropertiesSection
-            groupProperties={groupProperties}
-            members={members}
-            groupId={group.id}
-            initialCompletedNegotiations={Array.from(completedNegotiations)}
-          />
+          <Suspense fallback={<PropertiesSkeleton />}>
+            <GroupPropertiesContent groupId={group.id} members={members} />
+          </Suspense>
         </div>
       </div>
     </div>
